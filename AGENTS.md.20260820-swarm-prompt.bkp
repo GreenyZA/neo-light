@@ -1,0 +1,182 @@
+# Build a Skill-Based Multi-Agent System with Paired Reviewers + Top-Level Approver
+
+You are setting up a durable, self-improving multi-agent operating system for **this** repository.
+
+Do not ask the user to describe the stack or conventions first. Explore the repository thoroughly, then create the files. Every claim must be evidenced by the actual codebase. Never invent technologies, folders, or rules.
+
+This prompt is project-agnostic. Adapt everything to what you actually find.
+
+---
+
+## Mission
+
+Create a complete agent system with this structure:
+
+1. **Skills Inventory** – Discover every real technology/skill used in the project and keep it as a living document.
+2. **Specialist Worker Agents** – One dedicated agent per skill.
+3. **Paired Reviewer / QA Agents** – Every Worker has its own dedicated Reviewer. Work loops until the Reviewer is fully satisfied.
+4. **Top-Level Approver** – After all specialist work is complete, a final Approver reviews the entire integrated change. If issues are found, work is sent back to the responsible specialist(s).
+
+All guidance must be written as lasting project files (not temporary chat instructions).
+
+---
+
+## Phase 1 – Deep Project Exploration
+
+Thoroughly explore the repository (use parallel read-only subagents where helpful). Identify:
+
+- All languages, frameworks, libraries, runtimes, and tools actually used
+- Frontend, backend, database, infrastructure, testing, CI/CD, DevOps, etc.
+- Architectural patterns and high-risk areas (data integrity, multi-tenancy, financial logic, etc.)
+- Existing conventions, test/build commands, and safety constraints
+
+Only list technologies that are clearly evidenced in the codebase.
+
+---
+
+## Phase 2 – Auto-Generate Agent Names & Personas
+
+Automatically create memorable, distinct names and personalities for every agent.
+
+**Naming style preference:**
+- Prefer clever, memorable names with personality (in the spirit of “JSON Statham”).
+- Workers should feel competent and action-oriented.
+- Reviewers should feel precise, strict, and protective.
+- The Top-Level Approver should feel authoritative and final.
+
+Generate:
+- One Worker name + personality per skill
+- One paired Reviewer name + personality for each Worker
+- One strong Top-Level Approver name + personality
+
+Make the personalities clearly different so it is obvious which agent is speaking.
+
+---
+
+## Phase 3 – Create the System Files
+
+Create or update the following:
+
+### 1. `AGENTS.md` (repository root – keep 120–150 lines max)
+
+Required sections (in order):
+- Role
+- Core Rules (Always / Never style)
+- Technology Decisions (only what exists in this repo)
+- Skills Inventory (high-level list + link to the living document)
+- Agent Hierarchy overview
+- Non-trivial Change Workflow (include the strict loops)
+- Done Means (work is only done after Top-Level Approver clean pass)
+- Self-Improvement Protocol
+- Progressive Disclosure
+- Repository Landmarks
+
+### 2. `docs/agent/skills-inventory.md` (Living document)
+
+- Complete list of every skill/technology discovered
+- Short description of what each skill covers **in this project**
+- Clear rule that this file must be updated whenever new technologies appear
+
+### 3. `docs/agent/workflows.md`
+
+Full detailed multi-agent process, including:
+- Agent hierarchy diagram
+- When to involve which specialists
+- The strict Worker ↔ Reviewer loop
+- The Top-Level Approver final gate
+- Isolation and hand-off rules
+
+### 4. `docs/agent/personas/` (or `docs/agent/agents/`)
+
+Create individual definition files for:
+- Every Specialist Worker
+- Every paired Reviewer / QA agent
+- The Top-Level Approver
+
+Each file must contain:
+- Name
+- Role
+- Personality
+- Scope (what it is allowed to touch)
+- What it is forbidden to do
+- Communication style
+- Success criteria
+
+### 5. `docs/agent/project-learnings.md`
+
+Newest-first failure log (use a clean template if no real evidence exists yet).
+
+---
+
+## Required Agent Hierarchy & Strict Workflow
+
+```
+User Request / Feature
+        ↓
+Main Orchestrator
+        ↓
+Relevant Specialist Worker Agents (by skill needed)
+        ↓
+Each Worker → its own dedicated Reviewer/QA
+        ↓
+(Worker ↔ Reviewer loop until Reviewer gives clean pass)
+        ↓
+Once ALL relevant Workers have clean passes
+        ↓
+Top-Level Approver reviews the complete integrated change
+        ↓
+If issues found → return work to the responsible Worker(s)
+        ↓
+Repeat until Top-Level Approver issues a final clean pass
+```
+
+### Strict Rules (must be written into the system)
+
+1. A Worker agent may only work within its own skill domain.
+2. After a Worker finishes its part, it **must** immediately hand off to its paired Reviewer.
+3. The Reviewer performs a full independent review and reports findings by severity (Critical / High / Medium / Low).
+4. If any Critical or High issues exist → work returns to the Worker with the exact findings.
+5. The Worker ↔ Reviewer loop continues until the Reviewer explicitly issues a **clean pass** (zero Critical + zero High).
+6. Only after **all** involved Workers have received clean passes from their Reviewers does the work proceed to the Top-Level Approver.
+7. The Top-Level Approver reviews the complete integrated change for consistency, cross-skill issues, architecture, and overall quality.
+8. If the Top-Level Approver finds any issues, the work is returned to the specific Worker agent(s) responsible.
+9. The process only ends when the Top-Level Approver issues a final clean pass.
+
+Never allow a Worker to self-approve.  
+Never allow the same agent that wrote the code to act as its own final reviewer.
+
+---
+
+## Self-Improvement Protocol (required)
+
+The system must stay current as the project evolves:
+
+- When a new technology appears, update `skills-inventory.md` and create the corresponding Worker + Reviewer pair.
+- After non-trivial sessions, capture real failures into `project-learnings.md`.
+- Promote only high-value, broadly applicable rules into `AGENTS.md`.
+- Keep `AGENTS.md` lean by moving detail into the focused guides.
+
+---
+
+## Quality Bar
+
+Before finishing:
+
+- Every skill listed is evidenced in the codebase.
+- Every Worker has a clearly paired Reviewer.
+- The implement → review → fix → re-review loop is strict and continues until clean pass.
+- The Top-Level Approver is the final gate.
+- All files are vendor-neutral.
+- `AGENTS.md` stays within 120–150 lines.
+- Names and personalities are memorable and distinct.
+
+Return a clear summary containing:
+- Skills discovered
+- Full list of Worker + paired Reviewer agents (with names)
+- Name of the Top-Level Approver
+- How a typical new feature will flow through the system
+- Files created/updated
+
+---
+
+Start by exploring the repository thoroughly, auto-generate high-quality names and personas, then build the complete system.

@@ -1,0 +1,14 @@
+.grok-home/sessions/
+.grok-home/cache/
+.grok-home/logs/
+.grok-home/*.lock
+.env
+.hermes-home/.env
+.hermes-home/models_dev_cache.json
+.hermes-home/provider_models_cache.json
+*.key
+auth.json
+.hermes-home/sessions/
+.hermes-home/logs/
+.hermes-home/state.db*
+.hermes-home/cache/

@@ -1,0 +1,96 @@
+[cli]
+auto_update = false
+
+[models]
+default = "vulkan-3b"
+web_search = "vulkan-3b"
+
+[model.vulkan-3b]
+model = "qwen2.5-3b-instruct"
+base_url = "http://192.168.1.10:8081/v1"
+name = "T1-fast Vulkan 3B"
+api_backend = "chat_completions"
+context_window = 4096
+max_completion_tokens = 1024
+temperature = 0.2
+
+[model.ollama-7b]
+model = "qwen2.5-coder:7b"
+base_url = "http://192.168.1.10:11434/v1"
+name = "T1 Ollama 7B"
+api_backend = "chat_completions"
+context_window = 4096
+max_completion_tokens = 1024
+temperature = 0.2
+
+[model.minimax-m3]
+model = "minimaxai/minimax-m3"
+base_url = "https://integrate.api.nvidia.com/v1"
+name = "T2 MiniMax M3 (free)"
+api_backend = "chat_completions"
+env_key = "NVAPI_KEY"
+context_window = 32000
+max_completion_tokens = 2048
+temperature = 0.2
+
+[model.openrouter-free]
+model = "openrouter/free"
+base_url = "https://openrouter.ai/api/v1"
+name = "T2 OpenRouter free"
+api_backend = "chat_completions"
+env_key = "OPENROUTER_API_KEY"
+context_window = 32000
+max_completion_tokens = 2048
+temperature = 0.2
+
+[model.openrouter-free.extra_headers]
+HTTP-Referer = "https://goclarity.co.za/"
+X-Title = "Light Engine"
+
+[ui]
+yolo = false
+permission_mode = "always-approve"
+max_thoughts_width = 120
+fork_secondary_model = "grok-4.6"
+compact_mode = false
+
+[features]
+telemetry = false
+remote_fetch = false
+feedback = false
+
+[memory]
+enabled = true
+
+[marketplace]
+official_marketplace_auto_installed = false
+default_skills_installs_purged = true
+
+[skills]
+disabled = [
+    "game-animation-frames",
+    "game-asset-core",
+    "game-character-consistency",
+    "game-tilesets",
+    "game-ui-icons",
+    "resume-claude",
+    "resume-codex",
+    "resume-cursor",
+    "pptx",
+    "execute-plan",
+    "implement",
+    "create-workflow",
+    "design",
+    "build-with-ai",
+    "code-review",
+]
+paths = []
+server_skill_dirs = []
+bundled_skill_dirs = []
+ignore = []
+
+[compat.claude]
+skills = false
+
+[compat.cursor]
+skills = false

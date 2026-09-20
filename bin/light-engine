@@ -1,0 +1,33 @@
+#!/bin/bash
+# Light Engine TUI. Isolated GROK_HOME. Does not touch James (~/.grok).
+set -euo pipefail
+ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+export GROK_HOME="$ROOT/.grok-home"
+mkdir -p "$GROK_HOME"
+cd "$ROOT"
+
+if [[ -f "$HOME/.config/openrouter/api_key" ]]; then
+  export OPENROUTER_API_KEY
+  OPENROUTER_API_KEY="$(tr -d ' \t\r\n' < "$HOME/.config/openrouter/api_key")"
+fi
+if [[ -f "$HOME/Work/Projects/nvapi.key" ]]; then
+  export NVAPI_KEY NVIDIA_API_KEY
+  NVAPI_KEY="$(tr -d ' \t\r\n' < "$HOME/Work/Projects/nvapi.key")"
+  NVIDIA_API_KEY="$NVAPI_KEY"
+fi
+
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}"
+mkdir -p "$STATE/clarity" "$STATE/omarchy/agents"
+printf '%s\n' '{"mode":"local"}' > "$STATE/clarity/engine-mode.json"
+printf '%s\n' '{"mode":"local"}' > "$STATE/omarchy/agents/panel-view.json"
+printf '\033]0;Light Engine\007' || true
+
+restore_james_default() {
+  printf '%s\n' '{"mode":"grok"}' > "$STATE/clarity/engine-mode.json"
+  printf '%s\n' '{"mode":"grok"}' > "$STATE/omarchy/agents/panel-view.json"
+}
+trap restore_james_default EXIT
+
+MODEL="${GROK_MODEL:-vulkan-3b}"
+# Do not exec: James stays the default after this session exits.
+grok --model "$MODEL" "$@"

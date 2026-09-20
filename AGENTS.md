@@ -29,6 +29,20 @@ Neo routes every agent call through the token-optimiser skill. It hooks into Neo
 - `token-optimiser` — for routing decisions on every agent call.
 - `bring-grok` — only when local and free tiers both failed or timed out.
 
+## Board of Advisors
+
+Neo answers board questions via the `board-of-advisors` skill.
+
+**Trigger:** `BOA`, `ask the BOA`, or `ask the board` + question.
+
+**Seats (parallel):** Ethics · Educator · Builder · Operator · Product · Privacy/POPIA. Six agents answer simultaneously, then a short synthesis is produced.
+
+**Routing:** Uses TOS routing for tier decisions (T1 local → T2 free → T3 paid).
+
+**Ops questions:** Classify with ITIL first before routing to the board.
+
+**Logging:** All board sessions log to vault.
+
 ## Never
 
 - SuperGrok, Ultra, or `kimi-k2.6` in this TUI.

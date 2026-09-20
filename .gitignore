@@ -12,3 +12,17 @@ auth.json
 .hermes-home/logs/
 .hermes-home/state.db*
 .hermes-home/cache/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Project specific
+token_optimiser/__pycache__/
+token_optimiser/dashboard/__pycache__/
+token_optimiser/tests/__pycache__/
+*.jsonl
+work/
+.hermes-home/skills/

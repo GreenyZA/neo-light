@@ -1,0 +1,1 @@
+{"timestamp": "2026-09-20T05:39:38.481280", "question": "We need to add JWT authentication to our microservice API. What's the best approach for securing endpoints while keeping token costs low?", "incident_id": "BOA-20260920-053938", "itil": {"classification": "event", "confidence": 1.0, "prefix": "EVT", "keywords_matched": ["ping"], "requires_chg_number": false}}

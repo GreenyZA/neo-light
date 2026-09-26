@@ -33,6 +33,8 @@ class Tier:
 TIERS = [
     Tier("T1", "Local free (llama-server)", "ollama", "$0 local, private, offline",
          confidence_min=80, confidence_max=101),
+    Tier("T1b", "Local secondary (Lenovo CPU)", "local_cpu", "$0 local, private, offline, larger model",
+         confidence_min=70, confidence_max=80),
     Tier("T2", "Free cloud (OpenRouter/NVIDIA/DeepSeek/Poolside)", "free_cloud", "$0 free tiers, frontier models",
          confidence_min=60, confidence_max=80),
     Tier("T3", "High-tier (Grok/Solar)", "high_tier", "paid plan, security + final judgment",
@@ -390,7 +392,7 @@ ORCHESTRATOR_ROUTING = [
     },
 ]
 
-_TIER_ORDER = {"T1": 1, "T2": 2, "T3": 3}
+_TIER_ORDER = {"T1": 1, "T1b": 1, "T2": 2, "T3": 3}
 
 
 def _tier_at_least(tier: str, minimum: str) -> str:
@@ -553,7 +555,10 @@ class TokenRouter:
 
         # If non-trivial and not forced T3, aggressively use T2 for the main task too
         if swarm.get("non_trivial") and tier not in ("T3", "ASK") and config.free_tier_priority:
-            if not (itil_classification.get("classification") == "change" or
+            # Don't override privacy-forced local routing (T1/T1b) to cloud T2
+            privacy_forced = tier in ("T1", "T1b")
+            if not privacy_forced and not (
+                    itil_classification.get("classification") == "change" or
                     (matches and any(m.get("name") == "security" for m in matches))):
                 tier = "T2"
                 rationale += " | ITIL+swarm non-trivial: forced T2 (free tier max)"
@@ -859,14 +864,23 @@ class TokenRouter:
 
         # ── PRIVACY / OFFLINE SHORT-CIRCUIT ─────────────────────────────────────
         # If privacy_force_t1 is enabled, check task text for privacy/offline keywords.
-        # These ALWAYS route to T1 regardless of free_tier_priority — data never leaves.
+        # These ALWAYS route to T1 or T1b regardless of free_tier_priority — data never leaves.
         if config.privacy_force_t1 and matches:
             top_match = matches[0]
-            if top_match.get("force_tier") == "T1" or top_match["name"] == "privacy":
-                return "T1"
+            privacy_forced = (
+                top_match.get("force_tier") == "T1" or
+                top_match["name"] == "privacy"
+            )
             # Also check raw keyword match from config.privacy_offline_keywords
             task_lower = self._last_task_text.lower() if hasattr(self, '_last_task_text') else ""
             if any(kw in task_lower for kw in config.privacy_offline_keywords):
+                privacy_forced = True
+            
+            if privacy_forced:
+                # Check if T1b keywords are also present — route to Lenovo's 7B CPU model
+                if hasattr(config, 't1b_keywords') and any(kw in task_lower for kw in config.t1b_keywords):
+                    if config.tier_backends.get("T1b", {}).get("enabled", True):
+                        return "T1b"
                 return "T1"
 
         # ── ARCHITECTURE MINIMUM TIER ───────────────────────────────────────────
@@ -923,7 +937,7 @@ class TokenRouter:
                 parts.append(f"+{len(matches)-1} more category matches")
         parts.append(f"Scope: {scope}")
         parts.append(f"Confidence: {confidence}%")
-        parts.append(f"Thresholds: T1≥{config.threshold_t1_min} | T2≥{config.threshold_t2_min} | T3<{config.threshold_t3_always_below}")
+        parts.append(f"Thresholds: T1≥{config.threshold_t1_min} | T1b(priv) | T2≥{config.threshold_t2_min} | T3<{config.threshold_t3_always_below}")
 
         if tier == "ASK":
             reasons = []

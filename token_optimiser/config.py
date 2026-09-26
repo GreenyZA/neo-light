@@ -2,12 +2,14 @@
 Token Optimiser — Configuration
 
 UPDATED 2026-09-19:
-- T1 endpoint: 192.168.1.10:8081 (llama-server, Vulkan, RX 480)
-- T1 model: Phi-3.5-mini-instruct Q5_K_M (3.0GB, fits 4GB VRAM with 4K context)
-- T2 expanded: 40+ free models (NVIDIA Nemotron, DeepSeek V4 Flash, Poolside, etc.)
-- New: Free tier priority mode — T2 free cloud before T1 when quality is better
-- New: NVIDIA NIM integration (integrate.api.nvidia.com/v1)
-- New: DeepSeek V4 Flash free via OpenRouter AND NVIDIA NIM
+|- T1 endpoint: 192.168.1.10:8081 (llama-server, Vulkan, RX 480)
+|- T1 model: Phi-3.5-mini-instruct Q5_K_M (3.0GB, fits 4GB VRAM with 4K context)
+|- T1b endpoint: 192.168.1.102:8082 (llama-server on Lenovo M710Q CPU, Qwen2.5-7B Q4_K_M)
+|- T2 expanded: 40+ free models (NVIDIA Nemotron, DeepSeek V4 Flash, Poolside, etc.)
+|- New: Free tier priority mode — T2 free cloud before T1 when quality is better
+|- New: NVIDIA NIM integration (integrate.api.nvidia.com/v1)
+|- New: DeepSeek V4 Flash free via OpenRouter AND NVIDIA NIM
+|- New: T1b — secondary local tier on Lenovo M710Q for larger CPU models when privacy requires local + more knowledge than T1's 3B
 """
 
 from dataclasses import dataclass, field
@@ -57,6 +59,22 @@ class TokenOptimiserConfig:
                 "reasoning": "Phi-3.5-mini-instruct-Q5_K_M (3.0GB, best reasoning)",
                 "agentic": "Qwen3.5-4B-Q4_K_M (2.4GB, tool calling)",
                 "fast": "Llama-3.2-3B-Instruct-Q4_K_M (2.0GB, fastest)",
+            },
+        },
+        "T1b": {
+            "url": "http://192.168.1.102:8082",
+            "model": "qwen2.5-7b-instruct-1m",
+            "fallback_model": "qwen2.5-coder-7b-instruct-q3_k_m",
+            "max_prompt_tokens": 32768,
+            "enabled": True,
+            "tweak_notes": "llama.cpp CPU inference on Lenovo M710Q (i5-7500T 4C, 15GB RAM, no GPU). Qwen2.5-7B Q4_K_M on CPU. Simplified: no RPC server (redundant for single CPU node). ~5-10 tok/s. Use /v1/chat/completions OpenAI-compatible endpoint.",
+            "quality_rating": 0.72,
+            "vram_usage_gb": 0,
+            "context_tokens": 32768,
+            "alternative_models": {
+                "code": "qwen2.5-7b-instruct-1m (CPU, 7B, larger context)",
+                "chat": "qwen2.5-7b-instruct-1m (CPU, more knowledge than T1 3B)",
+                "reasoning": "qwen2.5-7b-instruct-1m (CPU, 7B for complex analysis)",
             },
         },
         "T2": {
@@ -162,6 +180,13 @@ class TokenOptimiserConfig:
     ])
 
     privacy_force_t1: bool = True
+
+    # Keywords that indicate the user needs a larger model than T1's 3B.
+    # When combined with privacy/offline keywords (force T1), routes to T1b (Lenovo 7B CPU) instead.
+    t1b_keywords: list = field(default_factory=lambda: [
+        "deep analysis", "7b", "larger model", "more knowledge",
+        "longer context", "complex analysis", "deep reasoning", "detailed output",
+    ])
     threshold_t1_min: int = 80
     threshold_t2_min: int = 60
     threshold_t3_always_below: int = 60
@@ -229,6 +254,7 @@ class TokenOptimiserConfig:
             "min_orchestrator_tier": self.min_orchestrator_tier,
             "enforce_review": self.enforce_review,
             "governance_mode": self.governance_mode,
+            "t1b_keywords": self.t1b_keywords,
         }
 
 

@@ -6,9 +6,9 @@
 
 ## Overview
 
-The Lenovo M710Q (192.168.1.102, SSH alias `anvil`) has been configured as a dual-purpose helper machine for the Acer workstation (192.168.1.10):
+The Lenovo M710Q (192.168.1.8, SSH alias `anvil`) has been configured as a dual-purpose helper machine for the Acer workstation (192.168.1.10):
 
-1. **T1b — Local CPU Inference**: llama.cpp serving Qwen2.5-7B on CPU, accessible at `http://192.168.1.102:8082`
+1. **T1b — Local CPU Inference**: llama.cpp serving Qwen2.5-7B on CPU, accessible at `http://192.168.1.8:8082`
 2. **Build Slave**: Docker buildx + gcc compilation offloading from the Acer
 
 ## Hardware Specifications
@@ -40,7 +40,7 @@ The T1b tier is registered in the token-optimiser config and router:
 ```python
 # config.py tier_backends
 "T1b": {
-    "url": "http://192.168.1.102:8082",
+    "url": "http://192.168.1.8:8082",
     "model": "qwen2.5-7b-instruct-1m",
     "quality_rating": 0.72,
     "context_tokens": 32768,
@@ -58,17 +58,17 @@ This means T1b is only used when the user explicitly needs a larger model for a 
 
 ```bash
 # Chat completions (from Acer or any LAN machine)
-curl http://192.168.1.102:8082/v1/chat/completions \
+curl http://192.168.1.8:8082/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{"model":"qwen2.5-7b-instruct-1m","messages":[{"role":"user","content":"Hello"}],"max_tokens":16}'
 
 # Health check
-curl http://192.168.1.102:8082/health
+curl http://192.168.1.8:8082/health
 
 # OpenAI SDK (from Acer)
 python -c "
 from openai import OpenAI
-client = OpenAI(base_url='http://192.168.1.102:8082/v1', api_key='EMPTY')
+client = OpenAI(base_url='http://192.168.1.8:8082/v1', api_key='EMPTY')
 print(client.chat.completions.create(
     model='qwen2.5-7b-instruct-1m',
     messages=[{'role': 'user', 'content': 'Hello!'}]
@@ -94,7 +94,7 @@ This was simplified because both the RPC server and llama-server were on the sam
 offloading CPU layers to another CPU process on the same box provides no benefit. The RPC
 approach is designed for GPU→CPU cross-machine offloading (e.g., Acer's Vulkan → Lenovo CPU),
 but the Acer runs its own llama-server independently. If cross-machine GPU→CPU offloading is
-needed in the future, the RPC server can be re-added with `--rpc 192.168.1.102:50052` on the
+needed in the future, the RPC server can be re-added with `--rpc 192.168.1.8:50052` on the
 Acer side and `--rpc 127.0.0.1:50052` on the Lenovo side, with proper GPU layer detection.
 
 ## Build Slave
@@ -118,7 +118,7 @@ docker --context=lenovo run --rm my-app:latest
 
 Passwordless SSH from Acer to Lenovo:
 ```bash
-ssh anvil  # Connects to 192.168.1.102
+ssh anvil  # Connects to 192.168.1.8
 ```
 
 ### Compilation Offload

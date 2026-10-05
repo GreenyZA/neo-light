@@ -35,10 +35,20 @@ def calibrate_confidence(category: str, base_confidence: int) -> int:
     ]
     if len(category_entries) <= 5:
         return base_confidence
-    successes = sum(
-        1 for e in category_entries
-        if e["outcome"].get("outcome_type") == "worked"
-    )
+    # The writer (plugin.token_optimiser_feedback) stores
+    #   {"outcome": {"outcome": "worked", "quality": ..., "delta": 0}}
+    # NOT an "outcome_type" key. The old lookup here always missed, so
+    # success_rate was 0.0 for every category and the <0.5 branch fired a
+    # permanent -10 penalty despite a ~93% real success rate.
+    # Accept both shapes so old and new log rows are honoured.
+    def _worked(entry: dict) -> bool:
+        outcome = entry.get("outcome") or {}
+        if not isinstance(outcome, dict):
+            return str(outcome).strip().lower() in ("worked", "success", "ok", "true")
+        marker = outcome.get("outcome_type", outcome.get("outcome"))
+        return str(marker).strip().lower() in ("worked", "success", "ok", "true")
+
+    successes = sum(1 for e in category_entries if _worked(e))
     success_rate = successes / len(category_entries)
     if success_rate < 0.5:
         base_confidence -= 10
@@ -156,26 +166,37 @@ optimiser. This is mandatory — every agent call passes through it.
     from token_optimiser.monica_integration import optimise, optimiser_enabled
     decision = optimise(task_description, {"estimated_lines": 50})
 
-### Tier meanings (UPDATED 2026-09-19)
+### Tier meanings (UPDATED 2026-10-05)
 
-- T1: Local llama-server (qwen2.5-coder-3b-instruct Q4_K_M on RX 480). Fast, free, private.
+- T1: Local llama-server (phi-4-mini-instruct Q4_K_M on RX 480). Fast, free, private.
   Used ONLY for: privacy-sensitive tasks, offline mode, or when free cloud is unavailable.
-  Quality: 0.6/1.0 — decent for simple tasks, weak on complex reasoning.
+  Quality: 0.70/1.0 — decent for simple tasks, weak on complex reasoning.
 
 - T2: FREE CLOUD — NOW THE DEFAULT for most tasks (free_tier_priority=True).
-  Models available (all $0):
-    - NVIDIA Nemotron 3 Ultra (550B MoE, 55B active) — frontier reasoning
-    - NVIDIA Nemotron 3 Super (120B MoE, 12B active) — agentic
-    - DeepSeek V4 Flash 0731 (284B MoE, 13B active) — research, analysis
-    - Poolside Laguna S 2.1 (118B MoE, 8B active) — coding
-    - Cohere North Mini Code — agentic coding
-    - Nex AGI Nex-N2.5-Pro — verified outcomes
+  PRIMARY: NVIDIA NIM (40 RPM, no daily reset, credit-based, 80 models)
+    - Default orchestrator: nvidia/nemotron-3-super-120b-a12b (262K ctx, ~0.2 credits/req)
+    - Escalation: nvidia/nemotron-3-ultra-550b-a55b (1M ctx, ~0.5 credits/req)
+    - High-frequency: nvidia/nemotron-3.5-lightning-30b-a3b (1M ctx, cheap credits)
+  SECONDARY: OpenRouter (20 RPM, 1,000 RPD with $10 top-up, 16 free models)
+    - Best model quality: nvidia/nemotron-3-ultra-550b-a55b:free (1M ctx)
+  FALLBACK: Nous Portal (50 RPM burst, 500K TPM, 8 free models)
+    - Good for simple/fast workers, OAuth expires hourly
   Quality: 0.95/1.0 — STRONGER than T1 for most tasks.
 
 - T3: Grok (SuperGrok). Expensive. Reserved for: security review, architecture decisions,
   final judgment, tasks where free cloud would give wrong answers.
 
 - ASK: Ambiguous tasks (3+ categories) or in hybrid band. Pause and ask user.
+
+### Orchestrator Model Selection (UPDATED 2026-10-05)
+
+- DEFAULT: nvidia/nemotron-3-super-120b-a12b
+  Best daily driver. 40 RPM, 262K context, ~0.2 credits/req. Use for most orchestration.
+- ESCALATION: nvidia/nemotron-3-ultra-550b-a55b
+  Complex multi-phase tasks, 10+ workers in context, architecture decisions.
+  Triggered when swarm score >= 15.
+- HIGH-FREQUENCY: nvidia/nemotron-3.5-lightning-30b-a3b
+  Fast dispatch of many simple workers, 1M context, cheap credits.
 
 ### Free Tier Priority Mode (ENABLED)
 

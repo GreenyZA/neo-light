@@ -403,6 +403,10 @@ class TokenOptimiserConfig:
                 "upstage/solar-mini4:free",
                 "poolside/laguna-s-2.1:free",
                 "poolside/laguna-xs-2.1:free",
+                # Live Nous free tier additions (scan 2026-10-11; OK to route here):
+                "stepfun/step-5-preview:free",     # 27B/600B MoE, 1M ctx, multimodal, mandatory reasoning, tools
+                "inclusionai/ling-3.1-flash",      # text, 262K ctx, tools, zero-cost (no :free suffix on Nous)
+                "stealth/missingno",               # Nous default free stealth model, 262K ctx, tools
             ],
             "max_prompt_tokens": 32000,
             "quality_rating": 0.9,

@@ -15,7 +15,7 @@ Today's live systems (leave them alone except the whitelist in §5):
 | Role | Alias | Hostname | IPv4 | OS now | User |
 |------|-------|----------|------|--------|------|
 | Daily driver (hearth) | hearth | `acer` | `192.168.1.10/24` | Arch rolling. **Not Omarchy.** GPU (RX 480 4 GB), llama, Grafana, wiki. | `warpuppy` (uid 1000) |
-| Helper (anvil) | anvil | `Lenovo` | `192.168.1.102/24` | **Omarchy** (Arch-like) 4.x. Helper, NFS, bar. | `warpuppy` (uid 1000) |
+| Helper (anvil) | anvil | `Lenovo` | `192.168.1.8/24` | **Omarchy** (Arch-like) 4.x. Helper, NFS, bar. | `warpuppy` (uid 1000) |
 
 Gateway `192.168.1.1`. LAN `192.168.1.0/24`.
 
@@ -55,12 +55,12 @@ There is **no password here**. Key login. User is always `warpuppy`. Do not `su`
 |------|----|---------|
 | Lenovo (you are often here) | local | you are already `warpuppy@Lenovo` |
 | Lenovo | acer | `ssh -o BatchMode=yes -o ConnectTimeout=5 server` or `ssh -o BatchMode=yes warpuppy@192.168.1.10` |
-| acer | Lenovo | `ssh -o BatchMode=yes -o ConnectTimeout=5 warpuppy@192.168.1.102` |
+| acer | Lenovo | `ssh -o BatchMode=yes -o ConnectTimeout=5 warpuppy@192.168.1.8` |
 | anyone | acer | `ssh server` is the locked alias for `192.168.1.10` |
 
 `sudo` is NOPASSWD on both boxes. That is a loaded gun. You may only sudo the exact commands in §5. If sudo asks for a password, **stop**.
 
-Cockpit URL after success: `https://192.168.1.102:9090`  
+Cockpit URL after success: `https://192.168.1.8:9090`  
 Login: Linux user `warpuppy` (same account, PAM). Self-signed cert: expected. LAN only.
 
 NICs (do not reconfigure):
@@ -113,14 +113,14 @@ If `/etc/os-release` on the **host** already says `ID=stout`, **stop** and write
 
 ## 3. Where to run
 
-Virt stack: **Lenovo only** (`192.168.1.102`, hostname `Lenovo`).
+Virt stack: **Lenovo only** (`192.168.1.8`, hostname `Lenovo`).
 
 ```
 h=$(tr -d ' \n' </etc/hostname)
 ```
 
 - If `$h` is `Lenovo`: run scripts locally.
-- If `$h` is `acer`: `ssh -o BatchMode=yes warpuppy@192.168.1.102` and run the same scripts there. Do not install qemu on acer in this task.
+- If `$h` is `acer`: `ssh -o BatchMode=yes warpuppy@192.168.1.8` and run the same scripts there. Do not install qemu on acer in this task.
 - Any other hostname: **stop**.
 
 ISO build (acer, 8 threads) is a **later** task. Not this file.
@@ -213,7 +213,7 @@ On Lenovo:
 - `grep '^ID=' /etc/os-release` on the **host** is still `arch` or omarchy-like, **not** `stout`
 - `hostname` still `Lenovo`
 
-From acer (optional): browser `https://192.168.1.102:9090` as `warpuppy`.
+From acer (optional): browser `https://192.168.1.8:9090` as `warpuppy`.
 
 Write `~/Projects/stout/DONE.md` with: packages installed, cockpit URL, pool path, `df -h /home/warpuppy`, host `ID=` line, and "live OS unchanged".
 

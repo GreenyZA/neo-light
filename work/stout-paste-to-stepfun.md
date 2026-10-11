@@ -14,19 +14,19 @@ If no: do not run it. Write FAILED.md. Stop.
 
 <hosts>
 acer | hearth | 192.168.1.10 | hostname acer | Arch | user warpuppy | SSH: ssh server
-Lenovo | anvil | 192.168.1.102 | hostname Lenovo | Omarchy | user warpuppy | SSH from acer: ssh -o BatchMode=yes warpuppy@192.168.1.102
+Lenovo | anvil | 192.168.1.8 | hostname Lenovo | Omarchy | user warpuppy | SSH from acer: ssh -o BatchMode=yes warpuppy@192.168.1.8
 Login: warpuppy, SSH key only. sudo NOPASSWD. Do not change users, keys, passwords, hostnames, or IPs.
 </hosts>
 
 <what_stout_is>
-Stout Linux is a future OS. It is NOT installed. Source is ~/Projects/stout/. Live acer stays Arch. Live Lenovo stays Omarchy. Host /etc/os-release must never say ID=stout. Twinforge (these two boxes) becomes Stout later, not now. This job does not build an ISO and does not start a VM. This job only attaches QEMU+libvirt+Cockpit on Lenovo via our scripts so VMs can be managed at https://192.168.1.102:9090 as warpuppy (LAN).
+Stout Linux is a future OS. It is NOT installed. Source is ~/Projects/stout/. Live acer stays Arch. Live Lenovo stays Omarchy. Host /etc/os-release must never say ID=stout. Twinforge (these two boxes) becomes Stout later, not now. This job does not build an ISO and does not start a VM. This job only attaches QEMU+libvirt+Cockpit on Lenovo via our scripts so VMs can be managed at https://192.168.1.8:9090 as warpuppy (LAN).
 </what_stout_is>
 
 <commands>
 # 0) identity (required first)
 h=$(tr -d ' \n' </etc/hostname); echo "HOST=$h USER=$(id -un) ID=$(grep ^ID= /etc/os-release | head -1)"
 
-# If HOST=acer: ssh -o BatchMode=yes warpuppy@192.168.1.102 and run 0 again, then 1-3, on Lenovo. Do not pacman on acer.
+# If HOST=acer: ssh -o BatchMode=yes warpuppy@192.168.1.8 and run 0 again, then 1-3, on Lenovo. Do not pacman on acer.
 # If HOST is not Lenovo and not acer: stop. FAILED.md.
 # If USER is not warpuppy: stop. FAILED.md.
 # If ID=stout on the HOST: stop. The live OS is already damaged. FAILED.md.
@@ -66,7 +66,7 @@ Flash-typical mistakes. Do not do them:
 02-smoke.sh prints SMOKE OK
 hostname still Lenovo
 host grep ^ID= /etc/os-release is not stout
-Cockpit https://192.168.1.102:9090
+Cockpit https://192.168.1.8:9090
 Then write /home/warpuppy/Projects/stout/DONE.md with those four lines. Stop. No more shell.
 </success>
 

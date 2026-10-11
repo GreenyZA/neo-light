@@ -49,3 +49,11 @@ work/
 .hermes-home/auth.json
 .hermes-home/auth.lock
 .hermes-home/state.db*
+
+# SSH key store (private keys — never commit)
+keys/
+*.pem
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub

@@ -27,6 +27,13 @@ token_optimiser/tests/__pycache__/
 !token_optimiser/learning_log.jsonl
 work/
 *.bkp
+
+# Stray ArduPilot artifacts (belong to ardu-work, not this repo)
+eeprom.bin
+mav.parm
+mav.tlog
+mav.tlog.raw
+terrain/
 .hermes-home/skills/
 .hermes-home/backups/
 .hermes-home/config*
@@ -49,6 +56,22 @@ work/
 .hermes-home/auth.json
 .hermes-home/auth.lock
 .hermes-home/state.db*
+
+# Hermes runtime state (regenerated, never version)
+.hermes-home/installs/
+.hermes-home/lsp/
+.hermes-home/runtime/
+.hermes-home/shared/
+.hermes-home/telemetry/
+.hermes-home/images/
+.hermes-home/source-checks/
+.hermes-home/processes.json
+.hermes-home/spawn-ledger.json
+.hermes-home/context_length_cache.yaml
+.hermes-home/shell-hooks-allowlist.json
+.hermes-home/.hermes-update-in-progress.lock
+.hermes-home/skills/**/.venv/
+.hermes-home/skills/**/__pycache__/
 
 # SSH key store (private keys — never commit)
 keys/

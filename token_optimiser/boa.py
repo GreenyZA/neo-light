@@ -698,6 +698,7 @@ def decide_governance(task: str, context: Optional[Dict[str, Any]] = None, fast:
 
 def _governance_dir(work_dir: Path) -> Path:
     """Return the governance audit directory, creating if needed."""
+    work_dir = Path(work_dir)
     gov_dir = work_dir / "governance"
     gov_dir.mkdir(parents=True, exist_ok=True)
     return gov_dir
@@ -1052,6 +1053,7 @@ def _write_session_log(
     work_dir: Path,
 ) -> Path:
     """Write the BOA session log in markdown format. Returns the log path."""
+    work_dir = Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
     ts = _timestamp_compact()
     log_path = work_dir / f"{ts}.md"
@@ -1197,6 +1199,8 @@ def run_boa(
         # CHG-2026-032: repo root, not the shared ~/Projects parent.
         _repo_root = Path(__file__).resolve().parents[1]
         work_dir = Path(context.get("work_dir", str(_repo_root / "work/boa"))) if context else (_repo_root / "work/boa")
+    # Accept str paths from CLI / orchestrator callers.
+    work_dir = Path(work_dir)
 
     # Lazy import to avoid circular dependency with monica_integration
     from token_optimiser.monica_integration import optimise

@@ -75,7 +75,7 @@ class TokenOptimiserConfig:
     # Default: nemotron-3-super-120b-a12b — best daily driver (40 RPM, 262K ctx, ~0.2 credits/req)
     # Escalation: nemotron-3-ultra-550b-a55b — complex multi-phase tasks (1M ctx, ~0.5 credits/req)
     # High-frequency: nemotron-3.5-lightning-30b-a3b — fast dispatch, 1M ctx, cheap credits
-    orchestrator_default_model: str = "nvidia/nemotron-3-super-120b-a12b"
+    orchestrator_default_model: str = "stealth/missingno"
     orchestrator_escalation_model: str = "nvidia/nemotron-3-ultra-550b-a55b"
     orchestrator_high_frequency_model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     orchestrator_escalation_threshold: int = 15  # swarm score >= 15 → escalate to Ultra

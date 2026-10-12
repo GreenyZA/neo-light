@@ -30,7 +30,18 @@ umask 077
 } > "$HERMES_HOME/.env"
 
 # Hermes rewrites config.yaml on start. Pin local every launch.
-python3 - "$HERMES_HOME/config.yaml" <<'PY'
+PYTHON=""
+for cand in "/home/warpuppy/.hermes/hermes-agent/venv/bin/python" "$(command -v python3)"; do
+  if [[ -x "$cand" ]] && "$cand" -c 'import yaml' 2>/dev/null; then PYTHON="$cand"; break; fi
+done
+[[ -n "$PYTHON" ]] || { echo "no python with yaml" >&2; exit 1; }
+
+# Share global Nous auth with this isolated home (read-write via symlink).
+if [[ -f "$HOME/.hermes/auth.json" && ! -e "$HERMES_HOME/auth.json" ]]; then
+  ln -s "$HOME/.hermes/auth.json" "$HERMES_HOME/auth.json"
+fi
+
+$PYTHON - "$HERMES_HOME/config.yaml" <<'PY'
 import sys
 from pathlib import Path
 p = Path(sys.argv[1])
@@ -41,23 +52,20 @@ except ImportError:
 raw = p.read_text() if p.exists() else "{}"
 data = yaml.safe_load(raw) or {}
 data["model"] = {
-    "default": "llama3.1-16k",
-    "provider": "custom",
-    "base_url": "http://192.168.1.10:11434/v1",
-    "context_length": 16384,
-    "ollama_num_ctx": 16384,
-    "max_output_tokens": 1024,
+    "default": "stealth/missingno",
+    "provider": "nous",
+    "base_url": "https://inference-api.nousresearch.com/v1",
+    "context_length": 262144,
+    "max_output_tokens": 4096,
 }
 data["compression"] = {"enabled": True, "threshold": 0.80}
 aux = data.get("auxiliary") or {}
 aux["free_only"] = True
-aux["compression"] = {"context_length": 16384}
+aux["compression"] = {"context_length": 262144}
 data["auxiliary"] = aux
 data["approvals"] = {"mode": "off", "timeout": 30}
 data.setdefault("platform_toolsets", {})["cli"] = ["file", "terminal"]
 data["fallback_providers"] = [
-    {"provider": "lmstudio", "model": "qwen2.5-3b-instruct", "base_url": "http://192.168.1.10:8081/v1"},
-    {"provider": "custom", "model": "minimaxai/minimax-m3", "base_url": "https://integrate.api.nvidia.com/v1", "key_env": "NVIDIA_API_KEY"},
     {"provider": "custom", "model": "openrouter/free", "base_url": "https://openrouter.ai/api/v1", "key_env": "OPENROUTER_API_KEY"},
 ]
 p.write_text(yaml.safe_dump(data, sort_keys=False))

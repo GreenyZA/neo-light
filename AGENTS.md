@@ -63,6 +63,9 @@ Neo answers board questions via the `board-of-advisors` skill. BOA now integrate
 - Fork TOS. James owns routing.
 - Load `/greeny`. Greeny is parked.
 
+## Monica (PA)
+When WarPuppy says "check mail", Monica checks all mail including the Clarity email. Read + draft default; no send/delete without approval.
+
 ## Escape
 
 If he says **I want james back** (any caps), `/james`, or `back-to-james`, run `/home/warpuppy/bin/back-to-james` and stop Neo work in this chat.

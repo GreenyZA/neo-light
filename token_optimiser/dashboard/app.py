@@ -734,9 +734,17 @@ def ollama_config_update(update: Dict):
     return api_ok({"updated": update})
 
 
-# ── Register Ollama-specific endpoints ────────────────────────────────────────
+# ── Register Ollama-specific endpoints ───────────────────────────────────────
 
 register_ollama_endpoints(app)
+
+# ── Optional: Monica Cockpit (feature-flagged) ───────────────────────────────
+
+try:
+    from token_optimiser.dashboard.cockpit import register_cockpit_endpoints
+    register_cockpit_endpoints(app)
+except Exception as exc:
+    logger.debug("Monica cockpit unavailable: %s", exc)
 
 
 # ── Startup / Shutdown events ─────────────────────────────────────────────────

@@ -80,3 +80,6 @@ id_rsa
 id_rsa.pub
 id_ed25519
 id_ed25519.pub
+
+# Mail env secrets (never commit) — account credentials live in ~/.config/clarity-mail, not the repo
+.hermes-home/clarity-mail/

@@ -111,6 +111,8 @@ def monica_state():
             "SELECT status, COUNT(*) AS n FROM cockpit_tasks GROUP BY status"
         ).fetchall()
         status_counts = {r["status"]: r["n"] for r in counts}
+        from token_optimiser.integration.monica_cockpit_adapter import MonicaCockpitAdapter
+        adapter = MonicaCockpitAdapter(db_factory=_conn)
         return _api_ok(
             {
                 "events": events,
@@ -118,7 +120,8 @@ def monica_state():
                 "task_counts": status_counts,
                 "reminders": reminders,
                 "panels": panels,
-                "mail": {"mode": "read_and_draft_only", "send_allowed": False},
+                "mail": adapter.mail_overview(),
+                "repo_tasks": adapter.repo_task_overview(),
             }
         )
     finally:

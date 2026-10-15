@@ -18,6 +18,25 @@ from dataclasses import fields, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+def _outcome_type(entry: Any) -> str:
+    if isinstance(entry, dict):
+        direct = entry.get("outcome_type")
+        if direct:
+            return str(direct)
+        nested = entry.get("outcome")
+        if isinstance(nested, dict):
+            for key in ("outcome_type", "outcome", "quality", "result"):
+                value = nested.get(key)
+                if value:
+                    return str(value)
+        if isinstance(nested, str) and nested:
+            return nested
+        for key in ("quality", "result"):
+            value = entry.get(key)
+            if value:
+                return str(value)
+    return "unknown"
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
@@ -287,7 +306,7 @@ def log_stats():
         tier = e.get("tier", "unknown")
         by_tier[tier] = by_tier.get(tier, 0) + 1
         # outcome_type is nested under "outcome" dict
-        ot = e.get("outcome", {}).get("outcome_type", "unknown")
+        ot = _outcome_type(e)
         by_outcome[ot] = by_outcome.get(ot, 0) + 1
 
     return api_ok({
@@ -296,6 +315,75 @@ def log_stats():
         "by_outcome": by_outcome,
         "total": total,
     })
+
+
+@app.post("/api/learning-log/outcome")
+def record_learning_outcome(payload: Dict):
+    """Record an outcome for an existing learning-log entry (opt-in feedback loop)."""
+    task_id = payload.get("task_id")
+    outcome = payload.get("outcome")
+    if not task_id or not isinstance(outcome, (str, dict)):
+        raise HTTPException(status_code=400, detail="task_id and outcome are required")
+    normalized = outcome if isinstance(outcome, dict) else {"outcome": str(outcome)}
+    log = LearningLog()
+    ok = log.append_outcome(task_id, normalized)
+    return api_ok({"recorded": ok, "task_id": task_id})
+
+@app.post("/api/learning-log/analyze")
+def analyze_learning_log(payload: Optional[Dict] = None):
+    """Aggregate-only (privacy-safe) AI analysis of routing decisions."""
+    limit = (payload or {}).get("limit", 250)
+    entries = LearningLog().get_entries()[-limit:]
+    from collections import Counter
+    tiers = Counter(e.get("tier", "unknown") for e in entries)
+    scopes = Counter(e.get("scope", "unknown") for e in entries)
+    cats = Counter((e.get("matched_categories") or ["unknown"])[0] for e in entries)
+    avg_conf = sum(float(e.get("confidence", 0)) for e in entries) / max(len(entries), 1)
+    summary = {"total": len(entries), "tiers": dict(tiers), "scopes": dict(scopes), "categories": dict(cats), "avg_confidence": round(avg_conf, 2)}
+    prompt = ("Analyze token-optimiser routing patterns (aggregate only, no task text). "
+              "Identify overly frequent expensive tiers, confidence issues, and threshold/scope changes. "
+              "Stats: " + str(summary))
+    analysis = None
+    try:
+        backend = (config.tier_backends or {}).get("T1", {})
+        url = backend.get("url"); model = backend.get("model")
+        if url and model:
+            import httpx
+            r = httpx.post(str(url).rstrip("/") + "/v1/chat/completions",
+                           json={"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 700},
+                           timeout=120.0)
+            analysis = r.json()["choices"][0]["message"]["content"]
+    except Exception as exc:
+        analysis = f"AI unavailable: {exc}"
+    return api_ok({"stats": summary, "ai_analysis": analysis})
+
+
+@app.post("/api/analytics/analyze")
+def analyze_analytics(payload: Optional[Dict] = None):
+    """Aggregate-only AI analytics of routing decisions."""
+    limit = (payload or {}).get("limit", 500)
+    entries = LearningLog().get_entries()[-limit:]
+    from collections import Counter
+    tiers = Counter(e.get("tier", "unknown") for e in entries)
+    scopes = Counter(e.get("scope", "unknown") for e in entries)
+    cats = Counter((e.get("matched_categories") or ["unknown"])[0] for e in entries)
+    avg = sum(float(e.get("confidence", 0)) for e in entries) / max(len(entries), 1)
+    summary = {"total": len(entries), "tiers": dict(tiers), "scopes": dict(scopes), "categories": dict(cats), "avg_confidence": round(avg, 2)}
+    prompt = ("Perform deep analytics on token-optimiser routing decisions (aggregate only, no task text). "
+              "Identify patterns, bottlenecks, confidence issues, and recommended changes. Stats: " + str(summary))
+    analysis = None
+    try:
+        backend = (config.tier_backends or {}).get("T1", {})
+        url = backend.get("url"); model = backend.get("model")
+        if url and model:
+            import httpx
+            r = httpx.post(str(url).rstrip("/") + "/v1/chat/completions",
+                           json={"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.3, "max_tokens": 900},
+                           timeout=120.0)
+            analysis = r.json()["choices"][0]["message"]["content"]
+    except Exception as exc:
+        analysis = f"AI unavailable: {exc}"
+    return api_ok({"summary": summary, "analysis": analysis})
 
 
 @app.post("/api/learning-log/clear")
@@ -461,7 +549,7 @@ def analytics_overview():
         if isinstance(conf, (int, float)):
             confidence_scores.append(conf)
         # outcome_type is nested under "outcome" dict
-        ot = e.get("outcome", {}).get("outcome_type", "unknown")
+        ot = _outcome_type(e)
         outcome_types[ot] = outcome_types.get(ot, 0) + 1
 
     avg_conf = (
@@ -483,7 +571,7 @@ def analytics_overview():
     t1_total = tier_counts.get("T1", 0)
     for e in entries:
         if e.get("tier") == "T1":
-            if e.get("outcome", {}).get("outcome_type") == "worked":
+            if _outcome_type(e) == "worked":
                 t1_success += 1
 
     t1_success_rate = (t1_success / t1_total * 100) if t1_total > 0 else 0
@@ -641,7 +729,7 @@ def analytics_effectiveness():
             by_tier[tier] = {"total": 0, "worked": 0, "partial": 0, "failed": 0}
         by_tier[tier]["total"] += 1
         # outcome_type is nested under "outcome" dict
-        outcome = e.get("outcome", {}).get("outcome_type", "unknown")
+        outcome = _outcome_type(e)
         if outcome == "worked":
             by_tier[tier]["worked"] += 1
         elif outcome == "partial":

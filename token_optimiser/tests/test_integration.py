@@ -705,7 +705,8 @@ class TestDashboardAPI:
     def test_dashboard_has_expected_routes(self):
         """Dashboard should have key API routes registered."""
         from token_optimiser.dashboard import app
-        routes = {r.path for r in app.routes}
+        routes = {getattr(r, "path", None) for r in app.routes}
+        routes.discard(None)
         assert "/api/config" in routes
         assert "/api/learning-log" in routes
         assert "/api/learning-log/stats" in routes

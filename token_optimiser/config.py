@@ -432,6 +432,16 @@ class TokenOptimiserConfig:
         "security": 55,
         "architecture": 65,
         "privacy": 55,
+        "monica_mail_triage_private": 60,
+        "monica_customer_records_local": 55,
+        "monica_local_redaction": 60,
+        "monica_sb_preprocess": 65,
+        "monica_local_indexing": 65,
+        "monica_health_status": 85,
+        "monica_portal_summary": 80,
+        "monica_ops_log_prep": 80,
+        "monica_time_prep": 75,
+        "monica_followup_list": 80,
     })
 
     # Privacy/offline keywords that ALWAYS force T1 routing regardless of free_tier_priority.

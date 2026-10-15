@@ -233,8 +233,123 @@ CATEGORY_RULES = [
             "large": -10,
         },
     },
+    {
+        "name": "monica_mail_triage_private",
+        "description": "Local-only email triage and draft prep for Monica's two accounts",
+        "keywords": [
+            "email triage", "inbox triage", "mail monitor", "mail poll",
+            "mail draft", "draft reply", "mail_sort", "unread",
+            "mailbox triage",
+        ],
+        "base_confidence": 75,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -10},
+        "cap_confidence": 60,
+        "force_tier": "T1",
+    },
+    {
+        "name": "monica_customer_records_local",
+        "description": "Local-only portal/client/customer-record transforms for Monica",
+        "keywords": [
+            "client record", "customer picture", "portal pull", "pii scrub",
+            "consent gap", "legal hold", "customer records local",
+        ],
+        "base_confidence": 70,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -10},
+        "cap_confidence": 55,
+        "force_tier": "T1",
+    },
+    {
+        "name": "monica_local_redaction",
+        "description": "Local-only redaction/scrubbing of identifiers and PII",
+        "keywords": [
+            "redact", "scrub identifiers", "anonymize", "de-identify",
+            "mask pii", "pii redaction", "local redaction",
+        ],
+        "base_confidence": 90,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -5},
+        "cap_confidence": 60,
+        "force_tier": "T1",
+    },
+    {
+        "name": "monica_sb_preprocess",
+        "description": "Local preprocessing of Second Brain/vault notes into chunks and metadata",
+        "keywords": [
+            "second brain ingest", "raw note", "chunk", "extract metadata",
+            "index notes", "vault ingest", "vault preprocessing",
+        ],
+        "base_confidence": 72,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -8},
+        "cap_confidence": 65,
+        "force_tier": "T1",
+    },
+    {
+        "name": "monica_local_indexing",
+        "description": "Local indexing/preprocessing for Monica's knowledge surfaces",
+        "keywords": [
+            "index", "vectorize", "embed locally", "knowledge base preprocess",
+            "local indexing",
+        ],
+        "base_confidence": 70,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -10},
+        "cap_confidence": 65,
+        "force_tier": "T1",
+    },
+    {
+        "name": "monica_health_status",
+        "description": "Routine service health and status checks for Monica",
+        "keywords": [
+            "health check", "service status", "dashboard status", "uptime",
+            "systemctl", "curl health", "health status", "service health",
+        ],
+        "base_confidence": 90,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -10},
+        "cap_confidence": 85,
+    },
+    {
+        "name": "monica_portal_summary",
+        "description": "Aggregate client/pipeline/invoice summaries without raw identifiers",
+        "keywords": [
+            "pipeline summary", "client counts", "invoice totals", "workflow stage",
+            "revenue summary", "customer picture summary", "portal summary",
+        ],
+        "base_confidence": 82,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -8},
+        "cap_confidence": 80,
+    },
+    {
+        "name": "monica_ops_log_prep",
+        "description": "Generic internal ops/status logging preparation",
+        "keywords": [
+            "ops log", "type=ops", "status note", "log entry", "health recheck",
+            "internal status note",
+        ],
+        "base_confidence": 85,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -10},
+        "cap_confidence": 80,
+    },
+    {
+        "name": "monica_time_prep",
+        "description": "Time-tracking and session-mapping preparation for Monica",
+        "keywords": [
+            "time log prep", "hours prep", "session mapping", "daily report hours",
+            "hours preparation", "session to hours",
+        ],
+        "base_confidence": 80,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -8},
+        "cap_confidence": 75,
+    },
+    {
+        "name": "monica_followup_list",
+        "description": "Low-risk follow-up and commitment lists from already-safe notes",
+        "keywords": [
+            "follow-up list", "followup", "commitments due", "open items",
+            "open item list", "next actions",
+        ],
+        "base_confidence": 88,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -6},
+        "cap_confidence": 80,
+    },
 ]
-
 
 # ── Parallelizable keywords ──────────────────────────────────────────────────
 

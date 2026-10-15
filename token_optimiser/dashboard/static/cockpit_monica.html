@@ -1,1 +1,311 @@
-<html><body>Monica Cockpit (MVP, feature-gated).<br>State: /api/cockpit/monica/state<br>Tasks: /api/cockpit/monica/tasks | Reminders: /api/cockpit/monica/reminders | Panels: /api/cockpit/monica/panels | APM: /api/cockpit/monica/apm</body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monica Cockpit</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f1117; color: #e1e4e8; min-height: 100vh; padding: 20px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 8px; color: #fff; }
+  .subtitle { color: #8b949e; margin-bottom: 24px; font-size: 0.9rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; }
+  .card h2 { font-size: 1rem; margin-bottom: 12px; color: #f0f6fc; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card h2 .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; font-weight: normal; }
+  .badge-green { background: #238636; color: #fff; }
+  .badge-red { background: #da3633; color: #fff; }
+  .badge-yellow { background: #d29922; color: #fff; }
+  .badge-blue { background: #1f6feb; color: #fff; }
+  .badge-gray { background: #484f58; color: #fff; }
+  label { display: block; font-size: 0.8rem; color: #8b949e; margin-bottom: 4px; }
+  .form-row { margin-bottom: 12px; }
+  input[type="text"], input[type="number"], select, textarea, input[type="datetime-local"] {
+    width: 100%; background: #0d1117; border: 1px solid #30363d; color: #e1e4e8;
+    padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #1f6feb; }
+  textarea { resize: vertical; min-height: 60px; font-family: monospace; font-size: 0.8rem; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; font-family: inherit; transition: opacity 0.15s; }
+  .btn-primary { background: #1f6feb; color: #fff; }
+  .btn-danger { background: #da3633; color: #fff; }
+  .btn-success { background: #238636; color: #fff; }
+  .btn-ghost { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #21262d; }
+  th { color: #8b949e; font-weight: 500; background: #0d1117; position: sticky; top: 0; }
+  td { color: #c9d1d9; }
+  tr:hover { background: #1c2128; }
+  .stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; min-width: 80px; text-align: center; }
+  .stat .val { font-size: 1.5rem; font-weight: 600; color: #fff; }
+  .stat .lbl { font-size: 0.7rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+  .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: #fff; font-size: 0.85rem; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .toast.success { background: #238636; }
+  .toast.error { background: #da3633; }
+  .panel-link { color: #58a6ff; text-decoration: none; }
+  .panel-link:hover { text-decoration: underline; }
+  .muted { color: #8b949e; font-size: 0.8rem; }
+  .event-card { border-left: 3px solid #1f6feb; padding: 8px 10px; margin-bottom: 8px; background: #0d1117; border-radius: 4px; font-size: 0.8rem; }
+  .mono { font-family: monospace; }
+  iframe.panel-frame { width: 100%; height: 320px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 120px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Monica Cockpit</h1>
+  <div class="subtitle">Personal assistant control surface — read/draft mail only, tasks, reminders, events, allowlisted panels</div>
+
+  <div class="stat-row" id="stats">
+    <div class="stat"><div class="val" id="stat-tasks">-</div><div class="lbl">Tasks</div></div>
+    <div class="stat"><div class="val" id="stat-open">-</div><div class="lbl">Open</div></div>
+    <div class="stat"><div class="val" id="stat-rem">-</div><div class="lbl">Reminders</div></div>
+    <div class="stat"><div class="val" id="stat-panels">-</div><div class="lbl">Panels</div></div>
+    <div class="stat"><div class="val" id="stat-events">-</div><div class="lbl">Events</div></div>
+  </div>
+
+  <div class="card" id="mail-card">
+    <h2>Mail Mode <span class="badge badge-green" id="mail-mode">read_and_draft_only</span></h2>
+    <p class="muted">Mail access is read and draft only. Sending and deletion are not available.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Create Task</h2>
+      <form id="form-task" onsubmit="createTask(event)">
+        <div class="form-row"><label>Title</label><input type="text" id="t-title" required></div>
+        <div class="row">
+          <div class="form-row"><label>Status</label>
+            <select id="t-status"><option value="open">open</option><option value="in_progress">in_progress</option><option value="done">done</option></select>
+          </div>
+          <div class="form-row"><label>Priority</label>
+            <select id="t-priority"><option value="low">low</option><option value="medium" selected>medium</option><option value="high">high</option></select>
+          </div>
+        </div>
+        <div class="form-row"><label>Due (ISO)</label><input type="text" id="t-due" placeholder="2026-..."></div>
+        <div class="form-row"><label>Source repo</label><input type="text" id="t-repo"></div>
+        <button class="btn btn-primary" type="submit">Create Task</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Create Reminder</h2>
+      <form id="form-reminder" onsubmit="createReminder(event)">
+        <div class="form-row"><label>Title</label><input type="text" id="r-title" required></div>
+        <div class="form-row"><label>Fire at (ISO)</label><input type="text" id="r-fire" placeholder="2026-..."></div>
+        <div class="form-row"><label>Channel</label><input type="text" id="r-channel" value="log"></div>
+        <div class="form-row"><label>Status</label><input type="text" id="r-status" value="scheduled"></div>
+        <button class="btn btn-primary" type="submit">Create Reminder</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Register Panel</h2>
+      <form id="form-panel" onsubmit="createPanel(event)">
+        <div class="form-row"><label>Name</label><input type="text" id="p-name" required></div>
+        <div class="form-row"><label>Grafana UID</label><input type="text" id="p-uid"></div>
+        <div class="form-row"><label>URL</label><input type="text" id="p-url" required placeholder="http://..."></div>
+        <div class="form-row"><label><input type="checkbox" id="p-allow"> Allowlisted</label></div>
+        <button class="btn btn-primary" type="submit">Register Panel</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Tasks</h2>
+    <div class="table-wrap">
+      <table><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Due</th><th>Repo</th></tr></thead>
+        <tbody id="tasks-body"></tbody></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Reminders</h2>
+    <div class="table-wrap">
+      <table><thead><tr><th>ID</th><th>Title</th><th>Fire at</th><th>Channel</th><th>Status</th></tr></thead>
+        <tbody id="reminders-body"></tbody></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Panels (registered)</h2>
+    <div class="table-wrap">
+      <table><thead><tr><th>ID</th><th>Name</th><th>UID</th><th>URL</th><th>Allowlisted</th></tr></thead>
+        <tbody id="panels-body"></tbody></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Events</h2>
+    <div id="events-list"></div>
+  </div>
+
+  <div class="card">
+    <h2>APM (allowlisted panels only)</h2>
+    <div id="apm-links"></div>
+    <div id="apm-frames"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function esc(v){ if(v===null||v===undefined) return ''; return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function isSafeUrl(u){ try { const x=new URL(u, location.origin); return x.protocol==='http:'||x.protocol==='https:'; } catch(e){ return false; } }
+
+let state = {};
+
+function toast(msg,type='success'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast '+type+' show';
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+async function api(path,method='GET',body=null){
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(body) opts.body=JSON.stringify(body);
+  const r=await fetch(path,opts);
+  if(!r.ok){ const err=await r.json().catch(()=>({msg:r.statusText})); throw new Error(err.msg||err.detail||`HTTP ${r.status}`); }
+  return r.json();
+}
+
+async function loadState(){
+  try{
+    const res=await api('/api/cockpit/monica/state');
+    state=res.data||{};
+    render();
+  }catch(e){ toast('Failed to load state: '+e.message,'error'); }
+}
+
+function render(){
+  const tasks=state.tasks||[];
+  const reminders=state.reminders||[];
+  const panels=state.panels||[];
+  const events=state.events||[];
+  const counts=state.task_counts||{};
+  document.getElementById('stat-tasks').textContent=tasks.length;
+  document.getElementById('stat-open').textContent=counts.open||0;
+  document.getElementById('stat-rem').textContent=reminders.length;
+  document.getElementById('stat-panels').textContent=panels.length;
+  document.getElementById('stat-events').textContent=events.length;
+
+  const mail=state.mail||{};
+  document.getElementById('mail-mode').textContent=mail.mode||'read_and_draft_only';
+
+  // tasks table
+  document.getElementById('tasks-body').innerHTML=tasks.map(t=>`<tr>
+    <td>${esc(t.id)}</td>
+    <td>${esc(t.title)}</td>
+    <td>${esc(t.status)}</td>
+    <td>${esc(t.priority)}</td>
+    <td>${esc(t.due_at)}</td>
+    <td>${esc(t.source_repo)}</td>
+  </tr>`).join('')||'<tr><td colspan="6" class="muted">No tasks</td></tr>';
+
+  document.getElementById('reminders-body').innerHTML=reminders.map(r=>`<tr>
+    <td>${esc(r.id)}</td>
+    <td>${esc(r.title)}</td>
+    <td>${esc(r.fire_at)}</td>
+    <td>${esc(r.channel)}</td>
+    <td>${esc(r.status)}</td>
+  </tr>`).join('')||'<tr><td colspan="5" class="muted">No reminders</td></tr>';
+
+  document.getElementById('panels-body').innerHTML=panels.map(p=>`<tr>
+    <td>${esc(p.id)}</td>
+    <td>${esc(p.name)}</td>
+    <td>${esc(p.grafana_uid)}</td>
+    <td>${esc(p.url)}</td>
+    <td>${p.allowlisted? 'yes':'no'}</td>
+  </tr>`).join('')||'<tr><td colspan="5" class="muted">No panels</td></tr>';
+
+  document.getElementById('events-list').innerHTML=events.map(e=>`<div class="event-card">
+    <div><strong>${esc(e.type||'event')}</strong> <span class="muted">${esc(e.created_at||'')}</span></div>
+    <div>${esc(e.message||e.detail||JSON.stringify(e))}</div>
+  </div>`).join('')||'<p class="muted">No events</p>';
+
+  loadApm();
+}
+
+async function loadApm(){
+  try{
+    const res=await api('/api/cockpit/monica/apm');
+    const list=res.data||[];
+    const links=document.getElementById('apm-links');
+    links.innerHTML=list.map(p=>{
+      if(!isSafeUrl(p.url)) return '';
+      return `<div style="margin-bottom:8px;"><a class="panel-link" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.name)}</a> <span class="muted">${esc(p.uid||'')}</span></div>`;
+    }).join('')||'<p class="muted">No allowlisted panels</p>';
+
+    const frames=document.getElementById('apm-frames');
+    frames.innerHTML=list.filter(p=>isSafeUrl(p.url)).map(p=>`
+      <div style="margin-top:12px;">
+        <div class="muted" style="margin-bottom:4px;">${esc(p.name)}</div>
+        <iframe class="panel-frame" src="${esc(p.url)}" sandbox="allow-scripts allow-same-origin" loading="lazy" referrerpolicy="no-referrer"></iframe>
+      </div>`).join('');
+  }catch(e){ toast('Failed to load APM: '+e.message,'error'); }
+}
+
+async function createTask(e){
+  e.preventDefault();
+  const body={
+    title:document.getElementById('t-title').value.trim(),
+    status:document.getElementById('t-status').value,
+    priority:document.getElementById('t-priority').value,
+    due_at:document.getElementById('t-due').value.trim()||null,
+    source_repo:document.getElementById('t-repo').value.trim()||null
+  };
+  try{
+    await api('/api/cockpit/monica/tasks','POST',body);
+    toast('Task created');
+    document.getElementById('form-task').reset();
+    await loadState();
+  }catch(err){ toast('Task failed: '+err.message,'error'); }
+}
+
+async function createReminder(e){
+  e.preventDefault();
+  const body={
+    title:document.getElementById('r-title').value.trim(),
+    fire_at:document.getElementById('r-fire').value.trim()||null,
+    channel:document.getElementById('r-channel').value.trim()||'log',
+    status:document.getElementById('r-status').value.trim()||'scheduled'
+  };
+  try{
+    await api('/api/cockpit/monica/reminders','POST',body);
+    toast('Reminder created');
+    document.getElementById('form-reminder').reset();
+    document.getElementById('r-channel').value='log';
+    document.getElementById('r-status').value='scheduled';
+    await loadState();
+  }catch(err){ toast('Reminder failed: '+err.message,'error'); }
+}
+
+async function createPanel(e){
+  e.preventDefault();
+  const body={
+    name:document.getElementById('p-name').value.trim(),
+    grafana_uid:document.getElementById('p-uid').value.trim()||null,
+    url:document.getElementById('p-url').value.trim(),
+    allowlisted:document.getElementById('p-allow').checked
+  };
+  if(!isSafeUrl(body.url)){ toast('Unsafe or invalid URL','error'); return; }
+  try{
+    await api('/api/cockpit/monica/panels','POST',body);
+    toast('Panel registered');
+    document.getElementById('form-panel').reset();
+    await loadState();
+  }catch(err){ toast('Panel failed: '+err.message,'error'); }
+}
+
+loadState();
+setInterval(loadState,30000);
+</script>
+</body>
+</html>

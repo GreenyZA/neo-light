@@ -24,6 +24,8 @@ from token_optimiser.redaction_guard import (
     validate_redaction,
     redaction_confidence,
     RedactionResult,
+    deterministic_redact,
+    safe_redact_output,
 )
 from token_optimiser.boa import run_boa
 
@@ -32,4 +34,5 @@ __all__ = ["config", "set_enabled", "TokenRouter", "LearningLog", "RoutingDecisi
            "run_boa", "classify_itil", "credential_report",
            "REDACTION_SYSTEM_PROMPT", "REDACTION_PLACEHOLDER",
            "build_redaction_prompt", "find_pii_leaks", "validate_redaction",
-           "redaction_confidence", "RedactionResult"]
+           "redaction_confidence", "RedactionResult",
+           "deterministic_redact", "safe_redact_output"]

@@ -11,6 +11,8 @@ from token_optimiser.redaction_guard import (
     find_pii_leaks,
     validate_redaction,
     REDACTION_PLACEHOLDER,
+    deterministic_redact,
+    safe_redact_output,
 )
 
 
@@ -38,3 +40,19 @@ def test_build_prompt_contains_rules():
     prompt = build_redaction_prompt("hello")
     assert "strict redaction engine" in prompt
     assert "hello" in prompt
+
+def test_deterministic_redact_masks_email_phone_card():
+    text = "Email john@example.com phone +27 82 000 0000 card 4111111111111111"
+    out = deterministic_redact(text)
+    assert "[REDACTED]" in out
+    assert "john@example.com" not in out
+    assert "+27 82 000 0000" not in out
+    assert "4111111111111111" not in out
+
+
+def test_safe_redact_output_falls_back_when_needed():
+    original = "Johann Venter, ID 9001015800085, phone +27 82 000 0000"
+    bad = original  # model echoed input unchanged
+    out = safe_redact_output(original, bad)
+    assert "[REDACTED]" in out
+    assert "9001015800085" not in out

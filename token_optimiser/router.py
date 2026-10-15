@@ -278,6 +278,78 @@ CATEGORY_RULES = [
         "force_tier": "T1",
     },
     {
+        "name": "monica_audio_transcript_redaction",
+        "description": "Local-only redaction/scrubbing of voice/meeting/call transcripts",
+        "keywords": [
+            "transcript", "memo", "dictation", "voice note", "voice memo",
+            "meeting notes", "call recording", "transcribe output", "audio transcript",
+        ],
+        "base_confidence": 75,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -8},
+        "cap_confidence": 60,
+        "force_tier": "T1",
+    },
+    {
+        "name": "monica_attachment_sanitization",
+        "description": "Local-only sanitization/redaction of file attachments and scans",
+        "keywords": [
+            "attachment redact", "attachment sanitize", "pdf scrub", "pdf redact",
+            "scan redact", "scanned document", "document anonymize", "form redaction",
+        ],
+        "base_confidence": 75,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -8},
+        "cap_confidence": 60,
+        "force_tier": "T1",
+    },
+    {
+        "name": "monica_log_scrub",
+        "description": "Local-only scrubbing/anonymization of logs and debug traces",
+        "keywords": [
+            "log scrub", "logs scrub", "access log redact", "audit log redact",
+            "anonymize logs", "scrub debug traces", "sanitize logs",
+        ],
+        "base_confidence": 80,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -8},
+        "cap_confidence": 60,
+        "force_tier": "T1",
+    },
+    {
+        "name": "monica_contact_calendar_redaction",
+        "description": "Local-only redaction of contacts and calendar/private address data",
+        "keywords": [
+            "calendar scrub", "calendar redact", "contact redact", "contact sanitize",
+            "address book sanitize", "address redact", "schedule redact",
+        ],
+        "base_confidence": 80,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -6},
+        "cap_confidence": 55,
+        "force_tier": "T1",
+    },
+    {
+        "name": "monica_export_anonymization",
+        "description": "Local-only anonymization of data exports and bulk client datasets",
+        "keywords": [
+            "csv anonymize", "data export redact", "export scrub", "export anonymize",
+            "bulk data anonymize", "dataset deidentify",
+        ],
+        "base_confidence": 80,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -10},
+        "cap_confidence": 60,
+        "force_tier": "T1",
+    },
+    {
+        "name": "monica_reidentification_guard",
+        "description": "Local-only guard against linkage/re-identification of client PII",
+        "keywords": [
+            "reidentify", "pii join", "linkage guard", "re-identification",
+            "join pii", "profile linkage", "anonymization check", "anonymity guard",
+        ],
+        "base_confidence": 75,
+        "scope_modifiers": {"small": 5, "medium": 0, "large": -8},
+        "cap_confidence": 55,
+        "force_tier": "T1",
+    },
+    {
         "name": "monica_sb_preprocess",
         "description": "Local preprocessing of Second Brain/vault notes into chunks and metadata",
         "keywords": [

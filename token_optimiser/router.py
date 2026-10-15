@@ -264,6 +264,8 @@ CATEGORY_RULES = [
         "keywords": [
             "redact", "scrub identifiers", "anonymize", "de-identify",
             "mask pii", "pii redaction", "local redaction",
+            "gps coordinate", "gps coordinates", "latitude", "longitude",
+            "geolocation", "location leak", "location data",
         ],
         "base_confidence": 90,
         "scope_modifiers": {"small": 5, "medium": 0, "large": -5},

@@ -125,3 +125,25 @@ def redaction_confidence(result: RedactionResult) -> float:
     if not result.safe:
         return 0.2
     return 1.0 if result.placeholder_present else 0.7
+
+
+def deterministic_redact(text: str) -> str:
+    """Deterministically replace all detectable PII with the redaction placeholder."""
+    result = text or ""
+    for _name, pattern in _PATTERNS.items():
+        result = pattern.sub(REDACTION_PLACEHOLDER, result)
+    return result
+
+
+def safe_redact_output(original: str, candidate: str) -> str:
+    """Return a trusted redaction, falling back to deterministic masking if needed."""
+    candidate = candidate or ""
+    validation = validate_redaction(original or "", candidate)
+    if validation.safe:
+        return candidate
+    # First try masking whatever leaked in the model output.
+    masked_candidate = deterministic_redact(candidate)
+    if validate_redaction(original or "", masked_candidate).safe:
+        return masked_candidate
+    # Last resort: redact the original deterministically.
+    return deterministic_redact(original or "")

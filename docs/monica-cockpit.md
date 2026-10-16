@@ -1,6 +1,6 @@
 # Monica Cockpit Integration
 
-Status: staged documentation. Feature flag `COCKPIT_MONICA_ENABLED` remains default false.
+Status: enabled by formal approval on 2026-10-15. `COCKPIT_MONICA_ENABLED=1` via systemd drop-in; default in code remains false for unblessed deployments.
 
 ## Embedding inside Clarity OS
 

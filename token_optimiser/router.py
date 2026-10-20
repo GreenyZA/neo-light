@@ -813,11 +813,16 @@ class TokenRouter:
         # ITIL classification — always run (cheap, drives governance)
         itil_classification = classify_itil(task)
 
-        # Select tier (now passes itil so change/security force T3, else free T2 aggressive)
+        # Select tier (zero-tier: T1 local -> T2 free cloud; T3 never returned;
+        # change/security forced-T3 become ASK with escalation flag on security)
         unique_categories = len(set(m["name"] for m in matches))
-        tier = self._select_tier(confidence, unique_categories, matches, itil_classification=itil_classification)
+        sel = self._select_tier(confidence, unique_categories, matches, itil_classification=itil_classification)
+        tier = sel["tier"]
+        security_escalate = sel["security_escalate"]
+        zero_tier_blocked = sel["zero_tier_blocked"]
 
-        rationale = self._build_rationale(matches, scope, confidence, tier, unique_categories)
+        rationale = self._build_rationale(matches, scope, confidence, tier, unique_categories,
+                                          select_rationale=sel["rationale"])
 
         # Compute parallelization score
         parallelize_score = self._compute_parallelize_score(task)
@@ -857,6 +862,8 @@ class TokenRouter:
             parallelize_score=parallelize_score,
             itil_classification=itil_classification,
             swarm=swarm,
+            security_escalate=security_escalate,
+            zero_tier_blocked=zero_tier_blocked,
         )
 
     def _compute_parallelize_score(self, task: str) -> float:
@@ -1029,14 +1036,10 @@ class TokenRouter:
             rec = "swarm"
             is_non_trivial = True
 
-        # bias: for free tier max, use T2 workers; only T3 if forced
-        forced_t3 = False
-        if itil_classification and itil_classification.get("classification") == "change":
-            forced_t3 = True
-        if matches and any(m.get("name") == "security" for m in matches):
-            forced_t3 = True
-
-        tier_for_workers = "T3" if forced_t3 else "T2"
+        # bias: workers on free T2 cloud. T3 is disabled in zero-tier mode, so
+        # change/security never reach workers — the gate ASKs first. Privacy
+        # force-T1 tasks run on T1 instead (handled at dispatch time).
+        tier_for_workers = "T2"
 
         return {
             "recommendation": rec,
@@ -1051,7 +1054,7 @@ class TokenRouter:
             "non_trivial": is_non_trivial,
             "itil_driven": is_ops,
             "tier_for_workers": tier_for_workers,
-            "rationale": f"score={total_score} (>8 non-trivial) → {rec}; workers on {tier_for_workers} (free max unless change/security)",
+            "rationale": f"score={total_score} (>8 non-trivial) → {rec}; workers on T2 (free cloud; T3 disabled — gate ASKs before any dispatch)",
         }
 
     def _determine_scope(self, words: int, lines_hint: Optional[int], task_text: str = "") -> str:
@@ -1115,92 +1118,93 @@ class TokenRouter:
 
         return int(round(weighted_conf))
 
-    def _select_tier(self, confidence: int, unique_categories: int = 0, matches: list = None, itil_classification: Optional[dict] = None) -> str:
-        """Select tier based on confidence score and config thresholds.
-        Now driven by ITIL/BOA governance: prioritize free (T2) aggressively unless
-        security or change classification forces T3.
+    def _select_tier(self, confidence: int, unique_categories: int = 0, matches: list = None, itil_classification: Optional[dict] = None) -> dict:
+        """Select tier based on confidence score and config thresholds ($0 zero-tier mode).
+
+        Returns {"tier", "security_escalate", "zero_tier_blocked", "rationale"}.
+        Router order is T1 local -> T2 free cloud; T3 is hard-disabled and is
+        never returned. Sub-60% or forced-T3 (change/security) conditions become
+        ASK instead, with security_escalate set on security calls so the caller
+        can escalate to James (never silent downgrade).
         """
         from token_optimiser.config import config
 
-        # ── ITIL / BOA GOVERNANCE OVERRIDE FIRST (forces T3 for change/security even on ambiguous) ─
+        security_escalate = False
+        zero_tier_blocked = False
+
+        # ── ITIL / BOA GOVERNANCE OVERRIDE FIRST ─
+        # change would force T3 in a paid setup; in zero-tier mode it becomes ASK.
         if itil_classification and itil_classification.get("is_ops"):
             cls = itil_classification.get("classification")
             if cls == "change":
-                return "T3"
-            if matches and any(m.get("name") == "security" for m in matches):
-                return "T3"
-            # incident/problem/request/event: stay on free path (aggressive T2)
+                return {"tier": "ASK", "security_escalate": False, "zero_tier_blocked": True,
+                        "rationale": "ITIL change: T3 disabled (zero-tier) — no paid tier; ASK human (CHG required)"}
+            # incident/problem/request/event: stay on free path
+
+        # Security category match (cap 55%): can never clear the T2 min of 60,
+        # and T3 is disabled -> ASK with an escalation flag so security calls are
+        # escalated to James, never silently downgraded to T2/T3.
+        if matches and any(m.get("name") == "security" for m in matches):
+            security_escalate = True
 
         # Ambiguous task check
         if config.ambiguous_task_asks_human and unique_categories >= 3:
-            return "ASK"
+            return {"tier": "ASK", "security_escalate": False, "zero_tier_blocked": False,
+                    "rationale": f"Ambiguous: {unique_categories} categories matched — ASK human"}
 
-        # Ask-human override
+        # Ask-human override (60–79% band)
         if config.ask_human_band and config.threshold_t2_min <= confidence < config.threshold_t1_min:
-            return "ASK"
+            return {"tier": "ASK", "security_escalate": False, "zero_tier_blocked": False,
+                    "rationale": f"Confidence {confidence}% in ask-human band (60–79) — ASK human"}
 
         # ── PRIVACY / OFFLINE SHORT-CIRCUIT ─────────────────────────────────────
-        # If privacy_force_t1 is enabled, check task text for privacy/offline keywords.
-        # These ALWAYS route to T1 or T1b regardless of free_tier_priority — data never leaves.
         if config.privacy_force_t1 and matches:
             top_match = matches[0]
             privacy_forced = (
                 top_match.get("force_tier") == "T1" or
                 top_match["name"] == "privacy"
             )
-            # Also check raw keyword match from config.privacy_offline_keywords
             task_lower = self._last_task_text.lower() if hasattr(self, '_last_task_text') else ""
             if any(kw in task_lower for kw in config.privacy_offline_keywords):
                 privacy_forced = True
-            
+
             if privacy_forced:
-                # Check if T1b keywords are also present — route to Lenovo's 7B CPU model
                 if hasattr(config, 't1b_keywords') and any(kw in task_lower for kw in config.t1b_keywords):
                     if config.tier_backends.get("T1b", {}).get("enabled", True):
-                        return "T1b"
-                return "T1"
+                        return {"tier": "T1b", "security_escalate": False, "zero_tier_blocked": False,
+                                "rationale": "Privacy forced + larger-model keyword -> T1b (local CPU)"}
+                return {"tier": "T1", "security_escalate": False, "zero_tier_blocked": False,
+                        "rationale": "Privacy/offline short-circuit -> T1 local"}
 
         # ── ARCHITECTURE MINIMUM TIER ───────────────────────────────────────────
-        # Architecture decisions need T2 minimum (free cloud is stronger than local 3B)
         arch_min_tier = None
         if matches and matches[0]["name"] == "architecture":
             arch_min_tier = "T2"
 
-        # ── FREE TIER PRIORITY ──────────────────────────────────────────────────
-        # When free_tier_priority is True and the task is NOT security,
-        # route to T2 (free cloud) instead of T1 (local 3B).
-        # The free cloud models ... are FAR superior ...
-        # Prioritize free tiers aggressively unless security/change forces T3.
-        if config.free_tier_priority and confidence >= config.threshold_t2_min:
-            # Check if this is a security task — security always goes to T3
-            if matches and matches[0]["name"] == "security":
-                return "T3"
-            tier = "T2"
-            # Enforce minimum tier if set (e.g., architecture needs T2+)
-            if arch_min_tier and _TIER_ORDER.get(tier, 0) < _TIER_ORDER.get(arch_min_tier, 0):
-                tier = arch_min_tier
-            return tier
-
-        # Standard routing (when free_tier_priority is False)
+        # ── STANDARD BANDS (T1-first per zero-tier router order) ────────────────
         if confidence >= config.threshold_t1_min:
             tier = "T1"
             if arch_min_tier and _TIER_ORDER.get(tier, 0) < _TIER_ORDER.get(arch_min_tier, 0):
                 tier = arch_min_tier
-            return tier
+            return {"tier": tier, "security_escalate": False, "zero_tier_blocked": False,
+                    "rationale": f"Confidence {confidence}% >= T1 min {config.threshold_t1_min}"}
 
         if confidence >= config.threshold_t2_min:
             if not config.hybrid_band_enabled:
-                return "ASK"
-            return "T2"
+                return {"tier": "ASK", "security_escalate": False, "zero_tier_blocked": False,
+                        "rationale": f"Confidence {confidence}% in T2 band but hybrid_band_enabled off — ASK"}
+            return {"tier": "T2", "security_escalate": False, "zero_tier_blocked": False,
+                    "rationale": f"Confidence {confidence}% >= T2 min {config.threshold_t2_min}"}
 
-        # Enforce minimum tier even at T3 (e.g., architecture needs T2+)
-        if arch_min_tier and _TIER_ORDER.get("T3", 0) < _TIER_ORDER.get(arch_min_tier, 0):
-            return arch_min_tier
-
-        return "T3"
+        # Below T2 minimum and T3 disabled -> no $0 tier cleared.
+        if arch_min_tier and _TIER_ORDER.get("T2", 0) < _TIER_ORDER.get(arch_min_tier, 0):
+            return {"tier": arch_min_tier, "security_escalate": security_escalate, "zero_tier_blocked": True,
+                    "rationale": f"Confidence {confidence}% < T2 min; architecture minimum {arch_min_tier} (free cloud only)"}
+        return {"tier": "ASK", "security_escalate": security_escalate, "zero_tier_blocked": True,
+                "rationale": f"Confidence {confidence}% < T2 min {config.threshold_t2_min}; T3 disabled (zero-tier) — no $0 tier cleared"}
 
     def _build_rationale(self, matches: list, scope: str, confidence: int, tier: str,
-                         unique_categories: int = 0) -> str:
+                         unique_categories: int = 0, select_rationale: str = "") -> str:
         """Build a human-readable rationale for the routing decision."""
         from token_optimiser.config import config
 
@@ -1214,7 +1218,7 @@ class TokenRouter:
                 parts.append(f"+{len(matches)-1} more category matches")
         parts.append(f"Scope: {scope}")
         parts.append(f"Confidence: {confidence}%")
-        parts.append(f"Thresholds: T1≥{config.threshold_t1_min} | T1b(priv) | T2≥{config.threshold_t2_min} | T3<{config.threshold_t3_always_below}")
+        parts.append(f"Thresholds: T1≥{config.threshold_t1_min} | T1b(priv) | T2≥{config.threshold_t2_min} | T3<{config.threshold_t3_always_below} (T3 disabled)")
 
         if tier == "ASK":
             reasons = []
@@ -1222,6 +1226,8 @@ class TokenRouter:
                 reasons.append(f"ambiguous ({unique_categories} categories)")
             if config.ask_human_band and config.threshold_t2_min <= confidence < config.threshold_t1_min:
                 reasons.append("in hybrid/ask band")
+            if confidence < config.threshold_t2_min:
+                reasons.append("below T2 min; T3 disabled (zero-tier)")
             if reasons:
                 parts.append(f"Decision: ASK HUMAN ({' + '.join(reasons)})")
             else:
@@ -1229,8 +1235,7 @@ class TokenRouter:
         else:
             tier_obj = next((t for t in TIERS if t.name == tier), None)
             if tier_obj:
-                # Add free model info for T2
-                if tier == "T2" and config.free_tier_priority and matches:
+                if tier == "T2" and matches:
                     preferred = config.category_free_model_preference.get(matches[0]["name"])
                     if preferred:
                         parts.append(f"Route: {tier} ({tier_obj.backend}) → {preferred}")
@@ -1240,6 +1245,9 @@ class TokenRouter:
                     parts.append(f"Route: {tier} ({tier_obj.backend})")
             else:
                 parts.append(f"Route: {tier}")
+
+        if select_rationale:
+            parts.append(select_rationale)
         return " | ".join(parts)
 
 
@@ -1261,6 +1269,8 @@ class RoutingDecision:
     orchestrator_hints: Optional[dict] = None
     itil_classification: Optional[dict] = None
     swarm: Optional[dict] = None
+    security_escalate: bool = False
+    zero_tier_blocked: bool = False
 
     def to_dict(self) -> dict:
         d = {
@@ -1274,6 +1284,8 @@ class RoutingDecision:
             "task_id": self.task_id,
             "parallelize": self.parallelize,
             "parallelize_score": self.parallelize_score,
+            "security_escalate": self.security_escalate,
+            "zero_tier_blocked": self.zero_tier_blocked,
         }
         if self.orchestrator_hints is not None:
             d["orchestrator_hints"] = self.orchestrator_hints

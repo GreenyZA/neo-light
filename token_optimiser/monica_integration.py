@@ -166,49 +166,47 @@ optimiser. This is mandatory — every agent call passes through it.
     from token_optimiser.monica_integration import optimise, optimiser_enabled
     decision = optimise(task_description, {"estimated_lines": 50})
 
-### Tier meanings (UPDATED 2026-10-05)
+### Tier meanings ($0 zero-tier mode; router order T1 local -> T2 free cloud)
 
-- T1: Local llama-server (phi-4-mini-instruct Q4_K_M on RX 480). Fast, free, private.
-  Used ONLY for: privacy-sensitive tasks, offline mode, or when free cloud is unavailable.
-  Quality: 0.70/1.0 — decent for simple tasks, weak on complex reasoning.
+- T1: Local llama-server (phi-4-mini-instruct Q4_K_M on RX 480, `http://192.168.1.10:8081`,
+  n_ctx 131072 wire-verified). Fast, free, private, offline.
+  Used for: privacy-sensitive tasks (force-T1), offline mode, and all confidence
+  >= 80 work (router order is T1-first). Quality: 0.70/1.0 — fine for simple
+  transforms, weak on complex reasoning.
+- T2: FREE CLOUD — the default cloud tier for confidence 60–79 (and non-trivial
+  swarm work). Zero budget: NVIDIA NIM (~40 RPM shared [unverified], free-credit
+  models), OpenRouter `:free` only (50 RPM / 50 RPD, no top-up — hard daily
+  ceiling), Nous Portal (50 RPM burst / 500K TPM, OAuth ~1h [unverified]).
+  Default orchestrator: `nvidia/nemotron-3-super-120b-a12b` (NVIDIA NIM).
+- T3: DISABLED. No paid tiers, no top-ups, ever (SuperGrok/Grok hard-locked).
+  Security/change tasks that would have gone T3 now ASK + escalate flag.
+- ASK: Ambiguous tasks (3+ categories) or 60–79% band when `ask_human_band=True`,
+  or below 60% with T3 disabled ("no $0 tier cleared"). Pause and ask user.
 
-- T2: FREE CLOUD — NOW THE DEFAULT for most tasks (free_tier_priority=True).
-  PRIMARY: NVIDIA NIM (40 RPM, no daily reset, credit-based, 80 models)
-    - Default orchestrator: nvidia/nemotron-3-super-120b-a12b (262K ctx, ~0.2 credits/req)
-    - Escalation: nvidia/nemotron-3-ultra-550b-a55b (1M ctx, ~0.5 credits/req)
-    - High-frequency: nvidia/nemotron-3.5-lightning-30b-a3b (1M ctx, cheap credits)
-  SECONDARY: OpenRouter (20 RPM, 1,000 RPD with $10 top-up, 16 free models)
-    - Best model quality: nvidia/nemotron-3-ultra-550b-a55b:free (1M ctx)
-  FALLBACK: Nous Portal (50 RPM burst, 500K TPM, 8 free models)
-    - Good for simple/fast workers, OAuth expires hourly
-  Quality: 0.95/1.0 — STRONGER than T1 for most tasks.
+### Orchestrator model selection (free models only)
 
-- T3: Grok (SuperGrok). Expensive. Reserved for: security review, architecture decisions,
-  final judgment, tasks where free cloud would give wrong answers.
+- DEFAULT: `nvidia/nemotron-3-super-120b-a12b` — NVIDIA NIM, 262K context,
+  ~0.2 credits/req [unverified]. Most orchestration.
+- ESCALATION: `nvidia/nemotron-3-ultra-550b-a55b` — NVIDIA NIM, 1M context,
+  ~0.5 credits/req [unverified]; OpenRouter fallback must be the `:free` variant.
+  Triggered when swarm score >= 15 (`orchestrator_escalation_threshold`).
+- HIGH-FREQUENCY: `nvidia/nemotron-3.5-lightning-30b-a3b` — NVIDIA NIM, 1M
+  context, cheap credits. Fast dispatch of many simple workers.
+- Workers: `nvidia/nemotron-nano-3-30b-a3b` (text-only — NO tool calling,
+  verified 404 on tool_calls), `mistralai/codestral-22b-instruct-v0.1` (code),
+  `deepseek-ai/deepseek-v4-flash` (reasoning) — all NVIDIA NIM; Nous free models
+  (`step-5-preview:free`, `ling-3.1-flash`, `stealth/missingno`) for burst.
+- Local: `phi-4-mini-instruct` (T1, `:8081`) for force-T1 privacy tasks.
 
-- ASK: Ambiguous tasks (3+ categories) or in hybrid band. Pause and ask user.
+Never: `kimi-k2.6`, Ultra models, `nemotron-3-ultra-550b-a55b` on OpenRouter
+without `:free` (paid), SuperGrok/grok-2 (AGENTS.md).
 
-### Orchestrator Model Selection (UPDATED 2026-10-05)
+### Zero-tier mode (ENABLED, locked)
 
-- DEFAULT: nvidia/nemotron-3-super-120b-a12b
-  Best daily driver. 40 RPM, 262K context, ~0.2 credits/req. Use for most orchestration.
-- ESCALATION: nvidia/nemotron-3-ultra-550b-a55b
-  Complex multi-phase tasks, 10+ workers in context, architecture decisions.
-  Triggered when swarm score >= 15.
-- HIGH-FREQUENCY: nvidia/nemotron-3.5-lightning-30b-a3b
-  Fast dispatch of many simple workers, 1M context, cheap credits.
-
-### Free Tier Priority Mode (ENABLED)
-
-When free_tier_priority=True (default), the optimizer routes to T2 (free cloud)
-BEFORE T1 (local) because the free models are FAR superior to the local 3B model.
-
-T1 is only used for:
-1. Privacy-sensitive tasks (data must stay local)
-2. Offline mode (no internet)
-3. Free cloud is rate-limited/unavailable
-
-For ALL other tasks, T2 free cloud is the FIRST choice.
+`zero_tier_mode=True`, `t3_hard_disabled=True`, `free_tier_priority=False`.
+T1-first per router order: confidence >= 80 stays on T1 local. T2 free cloud
+covers 60–79 (ASK if `ask_human_band`). Below 60 → ASK (T3 disabled — no
+$0 tier cleared). Privacy/offline keywords always short-circuit to T1.
 
 ### Recording outcomes
 

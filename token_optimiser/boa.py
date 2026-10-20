@@ -629,18 +629,19 @@ def decide_governance(task: str, context: Optional[Dict[str, Any]] = None, fast:
             tier = "T2"
             base_rationale = "fallback (optimise unavailable in decide_governance)"
 
-        # Influence free-tier preference when called from router
+        # Influence free-tier preference when called from router ($0 zero-tier mode).
+        # T1-first router order: a >=80 confidence task stays on T1 local — no
+        # T1 -> T2 downgrade here. T3 is hard-disabled: security/change can never
+        # be routed there; they become ASK with an escalation flag on security.
         if from_router:
             task_l = task.lower()
-            is_privacy = any(k in task_l for k in ["privacy", "secret", "local-only", "offline", "sensitive"])
             is_security = any(k in task_l for k in ["security", "auth", "encrypt", "vulnerab", "credential", "key"])
-            if tier == "T1" and not is_privacy:
-                tier = "T2"
-                base_rationale += " | BOA governance: free-tier preference (T2 over T1 for non-private)"
-            elif is_security:
-                tier = "T3"
-                base_rationale += " | BOA governance: security forces T3"
-            # note: T2 is already default free preference in router/config
+            if tier == "T1" and not any(k in task_l for k in ["privacy", "secret", "local-only", "offline", "sensitive"]):
+                # keep T1 local per router order; free_tier_priority is False
+                base_rationale += " | BOA governance: T1-first order kept (free_tier_priority False)"
+            if is_security and tier != "ASK":
+                tier = "ASK"
+                base_rationale += " | BOA governance: security forces ASK; T3 disabled (zero-tier) — escalate flag raised"
 
         # Decide swarm_size from governance
         if swarm_gov.get("governed") and swarm_gov.get("should_delegate", False):

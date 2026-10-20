@@ -54,20 +54,25 @@ class TokenOptimiserConfig:
     recent_decisions: list = field(default_factory=list)
     learning_log: list = field(default_factory=list)
 
-    # Free tier priority: T2 free cloud tried BEFORE T1 local
-    free_tier_priority: bool = True
+    # Free tier priority: T2 free cloud tried BEFORE T1 local.
+    # ZERO-TIER MODE ($0 only): router order is T1 local -> T2 free cloud.
+    # Forced False so high-confidence (>=80) work stays on T1 local per router order.
+    free_tier_priority: bool = False
 
-    # Category → preferred free model mapping (NVIDIA NIM primary, OpenRouter secondary)
+    # Category → preferred free model mapping ($0 only).
+    # Every entry must be free: NVIDIA NIM free-credit models, OpenRouter `:free`
+    # models only (never bare paid IDs), Nous Portal free models, or local-only.
+    # NVIDIA NIM credit costs are [unverified]; match model to task class to conserve.
     category_free_model_preference: dict = field(default_factory=lambda: {
         "code_gen_small": "nvidia/nemotron-3-super-120b-a12b",
         "code_gen_medium": "nvidia/nemotron-3-super-120b-a12b",
         "code_gen_large": "nvidia/nemotron-3-ultra-550b-a55b",
-        "documentation": "nvidia/nemotron-3-ultra-550b-a55b",
-        "research": "nvidia/nemotron-3-ultra-550b-a55b",
+        "documentation": "nvidia/nemotron-3-super-120b-a12b",
+        "research": "deepseek-ai/deepseek-v4-flash",
         "testing": "nvidia/nemotron-3-super-120b-a12b",
         "infrastructure": "nvidia/nemotron-3-super-120b-a12b",
-        "simple_transform": "nvidia/nemotron-3-super-120b-a12b",
-        "architecture": "nvidia/nemotron-3-ultra-550b-a55b",
+        "simple_transform": "phi-4-mini-instruct",
+        "architecture": "nvidia/nemotron-3-super-120b-a12b",
         "privacy": "local-only",
     })
 
@@ -75,7 +80,8 @@ class TokenOptimiserConfig:
     # Default: nemotron-3-super-120b-a12b — best daily driver (40 RPM, 262K ctx, ~0.2 credits/req)
     # Escalation: nemotron-3-ultra-550b-a55b — complex multi-phase tasks (1M ctx, ~0.5 credits/req)
     # High-frequency: nemotron-3.5-lightning-30b-a3b — fast dispatch, 1M ctx, cheap credits
-    orchestrator_default_model: str = "stealth/missingno"
+    # stealth/missingno removed: not in Nous Portal live /v1/models catalog (0 stealth models, verified this session)
+    orchestrator_default_model: str = "nvidia/nemotron-3-super-120b-a12b"
     orchestrator_escalation_model: str = "nvidia/nemotron-3-ultra-550b-a55b"
     orchestrator_high_frequency_model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"
     orchestrator_escalation_threshold: int = 15  # swarm score >= 15 → escalate to Ultra
@@ -421,9 +427,12 @@ class TokenOptimiserConfig:
                     "model": "grok-2-1212",
                     "max_prompt_tokens": 32000,
                     "enabled": False,
+                    "tweak_notes": "T3 HARD-LOCKED ($0 zero-tier mode): no paid tiers, no top-ups, ever. "
+                                   "Dashboard has no T3 enable toggle; enabling is logged and refused.",
                 },
             ],
             "default_provider": "Grok (SuperGrok)",
+            "t3_locked": True,
         },
     })
 
@@ -489,6 +498,24 @@ class TokenOptimiserConfig:
     # Parallelization scoring
     parallelize_threshold: float = 0.7
 
+    # ── Zero-tier mode ($0 only) ──────────────────────────────────────────
+    # T3 is hard-disabled: no paid tiers, no top-ups, ever. The dashboard has
+    # no T3 enable toggle; any attempt to enable T3 is logged and refused.
+    zero_tier_mode: bool = True
+    t3_hard_disabled: bool = True
+
+    # Rate-limit ceilings for $0 T2 providers (all [unverified] until live-probed).
+    # Used by the fan-out guard: N workers x M calls must fit inside RPM before
+    # dispatch; OpenRouter :free RPD is a hard daily ceiling.
+    provider_rate_ceilings: dict = field(default_factory=lambda: {
+        "NVIDIA_NIM": {"rpm": 40, "rpd": None,
+                       "notes": "shared credit pool [unverified]; ~0.05–0.5 cred/req by model [unverified]"},
+        "OpenRouter": {"rpm": 50, "rpd": 50,
+                       "notes": ":free, no top-up — hard daily ceiling [unverified]"},
+        "Nous Portal": {"rpm": 50, "tpm": 500000,
+                        "notes": "OAuth expires ~hourly; refresh required [unverified]"},
+    })
+
     # Orchestrator-aware routing
     orchestrator_routing: bool = True
     min_review_tier: str = "T2"
@@ -540,6 +567,9 @@ class TokenOptimiserConfig:
             "orchestrator_escalation_model": self.orchestrator_escalation_model,
             "orchestrator_high_frequency_model": self.orchestrator_high_frequency_model,
             "orchestrator_escalation_threshold": self.orchestrator_escalation_threshold,
+            "zero_tier_mode": self.zero_tier_mode,
+            "t3_hard_disabled": self.t3_hard_disabled,
+            "provider_rate_ceilings": self.provider_rate_ceilings,
         }
 
 

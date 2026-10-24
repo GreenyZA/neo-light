@@ -117,30 +117,28 @@ class TokenOptimiserConfig:
             },
         },
         "T1b": {
-            # DISABLED 2026-10-04. Both candidate hosts are dead:
-            #   192.168.1.8:8082   -> HTTP 000 (connection refused)
-            #   192.168.1.102:8082 -> HTTP 000 (connection refused)
-            # Nothing on this LAN serves 8082 at all. An uncommitted edit had
-            # moved this from .102 to .8, which made it unreachable rather than
-            # fixing it. The privacy short-circuit routes its STRICTEST tasks
-            # here, so a dead T1b means "must stay local, offline, air-gapped"
-            # work has nowhere to go. Left enabled, it advertised a capability
-            # that does not exist. Disabled until a host actually runs it.
-            "url": None,
-            "model": "qwen2.5-7b-instruct-1m",
-            "fallback_model": None,
-            "max_prompt_tokens": 32768,
-            "enabled": False,
-            "tweak_notes": "DISABLED: no host on the LAN serves :8082. Was Lenovo M710Q CPU llama-server. Re-enable only after a live /v1/models probe returns 200.",
-            "quality_rating": 0.0,
-            "vram_usage_gb": 0,
-            "context_tokens": 0,
-            "alternative_models": {
-                "code": "qwen2.5-7b-instruct-1m (CPU, 7B, larger context)",
-                "chat": "qwen2.5-7b-instruct-1m (CPU, more knowledge than T1 3B)",
-                "reasoning": "qwen2.5-7b-instruct-1m (CPU, 7B for complex analysis)",
-            },
-        },
+                    # RE-ENABLED 2026-10-23. Lenovo (anvil, 192.168.1.8) now runs
+                    # Ollama on :11434 (CPU-only, i5-7500T, no GPU) serving
+                    # llama3.1:8b-instruct-q4_K_M. Ollama exposes an OpenAI-compatible
+                    # /v1 endpoint, so the router's /v1/chat/completions calls work
+                    # unchanged. Model pull in progress on first enable; verify with
+                    # `curl 192.168.1.8:11434/v1/models` before relying on it.
+                    "url": "http://192.168.1.8:11434",
+                    "model": "llama3.1:8b-instruct-q4_K_M",
+                    "fallback_model": None,
+                    "max_prompt_tokens": 8192,
+                    "enabled": True,
+                    "tweak_notes": "Lenovo CPU (Ollama, i5-7500T, 4 cores). llama3.1:8b Q4_K_M, ~4.9GB. ~2-4 tok/s. CPU fallback when acer Vulkan (T1) is down or for privacy-forced larger-model tasks. Slower than T1 but always available.",
+                    "quality_rating": 0.65,
+                    "vram_usage_gb": 0,
+                    "context_tokens": 8192,
+                    "alternative_models": {
+                        "code": "qwen2.5-coder:7b (CPU, better code)",
+                        "chat": "llama3.1:8b (CPU, general purpose)",
+                        "reasoning": "llama3.1:8b (CPU, 8B for analysis)",
+                        "fast": "qwen3:0.6b (CPU, ~0.5GB, 10-20 tok/s)",
+                    },
+                },
         "T2": {
             "gateways": [
                 {
@@ -473,7 +471,7 @@ class TokenOptimiserConfig:
         "deep analysis", "7b", "larger model", "more knowledge",
         "longer context", "complex analysis", "deep reasoning", "detailed output",
     ])
-    threshold_t1_min: int = 80
+    threshold_t1_min: int = 60
     threshold_t2_min: int = 60
     threshold_t3_always_below: int = 60
     hybrid_band_enabled: bool = True

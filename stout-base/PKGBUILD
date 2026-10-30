@@ -1,0 +1,27 @@
+# Maintainer: WarPuppy <warpuppy@clarity.local>
+pkgname=stout-base
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Stout base OS profile validation"
+arch=('x86_64')
+depends=(
+  'base'
+  'linux'
+  'systemd'
+  'pacman'
+  'grub'
+  'nftables'
+  'networkmanager'
+  'openssh'
+)
+source=()
+sha256sums=()
+
+package() {
+  install -d "$pkgdir/usr/share/stout"
+  printf 'Stout base profile validated\n' > "$pkgdir/usr/share/stout/base"
+
+  install -d "$pkgdir/usr/share/stout/packages"
+  printf 'base linux linux-firmware systemd pacman nftables openssh\n' \
+    > "$pkgdir/usr/share/stout/packages/base"
+}

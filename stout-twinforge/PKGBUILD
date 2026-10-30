@@ -1,0 +1,94 @@
+# Maintainer: WarPuppy <warpuppy@clarity.local>
+pkgname=stout-twinforge
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="TwinForge workstation helpers and desktop bar package"
+arch=('x86_64')
+depends=(
+  'stout-base'
+  'hyprland'
+  'quickshell'
+  'input-leap'
+  'rofi'
+)
+source=()
+sha256sums=()
+
+package() {
+  install -d "$pkgdir/usr/bin"
+  cat > "$pkgdir/usr/bin/tf-helper" <<'TF_HELPER'
+#!/usr/bin/env bash
+set -euo pipefail
+target_host="warpuppy@192.168.1.8"
+state_file="$HOME/.local/state/twinforge/run.json"
+
+case "${1:-}" in
+  run)
+    shift
+    mkdir -p "$(dirname "$state_file")"
+    ssh "$target_host" "$*" > "$state_file"
+    cat "$state_file"
+    ;;
+  status)
+    ssh "$target_host" 'tf-helper status' 2>/dev/null || true
+    ;;
+  *)
+    echo "Usage: tf-helper run <command> | status"
+    exit 2
+    ;;
+esac
+TF_HELPER
+  chmod 0755 "$pkgdir/usr/bin/tf-helper"
+
+  install -d "$pkgdir/etc/stout/twinforge"
+  printf 'cpu mem gpu net vol grok ip clock\n' > "$pkgdir/etc/stout/twinforge/modules"
+  cat > "$pkgdir/etc/stout/twinforge/twinforge.env" <<'EOF'
+FORGE_NODE_ANVIL=192.168.1.8
+FORGE_NODE_HEARTH=192.168.1.10
+HELPER_STATUS_PORT=9129
+MIRROR_INTERVAL_MINUTES=5
+EOF
+
+  install -d "$pkgdir/usr/share/hypr"
+  cat > "$pkgdir/usr/share/hypr/stout-twinforge.conf" <<'EOF'
+exec-once = qs -c twinforge-bar
+exec-once = tf-helper status
+bind = SUPER, SPACE, exec, rofi -show drun
+EOF
+
+  install -d "$pkgdir/usr/share/quickshell/twinforge-bar"
+  cat > "$pkgdir/usr/share/quickshell/twinforge-bar/bar.qml" <<'EOF'
+import QtQuick
+import QtQuick.Layouts
+
+RowLayout {
+    anchors.fill: parent
+    spacing: 8
+
+    Text { text: "CPU" }
+    Text { text: "MEM" }
+    Text { text: "GPU" }
+    Text { text: "NET" }
+    Text { text: "VOL" }
+    Text { text: "GROK" }
+    Text { text: "IP" }
+    Text { text: "CLOCK" }
+}
+EOF
+
+  install -d "$pkgdir/usr/lib/systemd/system"
+  cat > "$pkgdir/usr/lib/systemd/system/tf-helper.service" <<'EOF'
+[Unit]
+Description=TwinForge helper dispatcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/tf-helper status
+User=warpuppy
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}

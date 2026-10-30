@@ -20,9 +20,9 @@ UPDATED 2026-10-04 (CHG-2026-030) — corrected against the wire, not from memor
   Q5_K_M / 4096 ctx / 3.0GB — a model that is not loaded. The server accepts any
   model name and silently substitutes, so the wrong name never errored.)
 - T1 fallback: NONE. qwen2.5-coder-3b-instruct is not on this box.
-- T1b: DISABLED. Both 192.168.1.8:8082 and 192.168.1.102:8082 return HTTP 000;
-  nothing on the LAN serves 8082. The privacy short-circuit sends its
-  strictest tasks here, so a dead T1b silently strands them.
+- T1b: ENABLED. localhost:8082 serves Qwen2.5-7B-Instruct-Q4_K_M
+  via llama-server (CPU-only, ngl=0, n_ctx=8192). Systemd: llama-t1b.service.
+  Privacy short-circuit routes strictest tasks here (air-gapped, local-only).
 - Credentials: token_optimiser never loaded ~/.hermes/.env, so from inside this
   process every free tier looked unavailable and decisions escalated to T3.
   Fixed in credentials.py (auto-loads on import; env always wins).
@@ -117,25 +117,23 @@ class TokenOptimiserConfig:
             },
         },
         "T1b": {
-                    # RE-ENABLED 2026-10-23. Lenovo (anvil, 192.168.1.8) now runs
-                    # Ollama on :11434 (CPU-only, i5-7500T, no GPU) serving
-                    # llama3.1:8b-instruct-q4_K_M. Ollama exposes an OpenAI-compatible
-                    # /v1 endpoint, so the router's /v1/chat/completions calls work
-                    # unchanged. Model pull in progress on first enable; verify with
-                    # `curl 192.168.1.8:11434/v1/models` before relying on it.
-                    "url": "http://192.168.1.8:11434",
-                    "model": "llama3.1:8b-instruct-q4_K_M",
+                    # UPDATED 2026-10-30. Now served via llama-server on localhost:8082
+                    # (CPU-only, ngl=0) with Qwen2.5-7B-Instruct-Q4_K_M (7.6B params).
+                    # Replaces old Ollama on 192.168.1.8:11434 setup. Systemd: llama-t1b.service.
+                    # Privacy short-circuit routes strictest tasks here (air-gapped, local-only).
+                    "url": "http://localhost:8082",
+                    "model": "qwen2.5-7b-instruct",
                     "fallback_model": None,
                     "max_prompt_tokens": 8192,
                     "enabled": True,
-                    "tweak_notes": "Lenovo CPU (Ollama, i5-7500T, 4 cores). llama3.1:8b Q4_K_M, ~4.9GB. ~2-4 tok/s. CPU fallback when acer Vulkan (T1) is down or for privacy-forced larger-model tasks. Slower than T1 but always available.",
-                    "quality_rating": 0.65,
+                    "tweak_notes": "Lenovo/acer CPU (llama-server, localhost:8082). Qwen2.5-7B-Instruct Q4_K_M, 7.6B params, 4.68GB. ~2-4 tok/s. CPU fallback when acer Vulkan (T1) is down or for privacy-forced larger-model tasks. Slower than T1 but always available. Systemd: llama-t1b.service.",
+                    "quality_rating": 0.75,
                     "vram_usage_gb": 0,
                     "context_tokens": 8192,
                     "alternative_models": {
-                        "code": "qwen2.5-coder:7b (CPU, better code)",
-                        "chat": "llama3.1:8b (CPU, general purpose)",
-                        "reasoning": "llama3.1:8b (CPU, 8B for analysis)",
+                        "code": "qwen2.5-7b-instruct (CPU, 7B, better code)",
+                        "chat": "qwen2.5-7b-instruct (CPU, more knowledge than T1 3B)",
+                        "reasoning": "qwen2.5-7b-instruct (CPU, 7B for complex analysis)",
                         "fast": "qwen3:0.6b (CPU, ~0.5GB, 10-20 tok/s)",
                     },
                 },

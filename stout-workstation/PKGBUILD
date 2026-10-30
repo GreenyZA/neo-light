@@ -1,0 +1,25 @@
+# Maintainer: WarPuppy <warpuppy@clarity.local>
+pkgname=stout-workstation
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Stout workstation edition (Hyprland + TwinForge)"
+arch=('any')
+depends=(
+  'stout-base'
+  'stout-twinforge'
+  'hyprland'
+  'quickshell'
+)
+optdepends=(
+  'rofi: application launcher'
+  'swww: wallpaper support'
+  'wlogout: logout menu'
+)
+source=()
+sha256sums=()
+
+package() {
+  install -d "$pkgdir/usr/share/stout/workstation"
+  printf 'stout-base + stout-twinforge\nHyprland\nQuickshell bar\nTwinForge helper\nInput Leap\n' \
+    > "$pkgdir/usr/share/stout/workstation/profile"
+}

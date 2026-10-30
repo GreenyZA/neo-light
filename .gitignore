@@ -90,3 +90,4 @@ docs/CREDENTIALS-LOCATIONS.md
 
 # Stout project copies (not part of neo-light)
 stout-*/
+token_optimiser/learning_log.jsonl

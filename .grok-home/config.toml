@@ -23,15 +23,19 @@ context_window = 4096
 max_completion_tokens = 1024
 temperature = 0.2
 
-[model.minimax-m3]
-model = "minimaxai/minimax-m3"
-base_url = "https://integrate.api.nvidia.com/v1"
-name = "T2 MiniMax M3 (free)"
+[model.crouton-alpha]
+model = "stealth/crouton-alpha"
+base_url = "https://openrouter.ai/api/v1"
+name = "T2 Crouton Alpha (free)"
 api_backend = "chat_completions"
-env_key = "NVAPI_KEY"
-context_window = 32000
-max_completion_tokens = 2048
+env_key = "OPENROUTER_API_KEY"
+context_window = 1048576
+max_completion_tokens = 8192
 temperature = 0.2
+
+[model.crouton-alpha.extra_headers]
+HTTP-Referer = "https://goclarity.co.za/"
+X-Title = "Light Engine"
 
 [model.openrouter-free]
 model = "openrouter/free"

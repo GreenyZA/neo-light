@@ -189,6 +189,7 @@ class TokenOptimiserConfig:
                 "liquid/lfm-2.5-2.6b:free",
                 "inclusionai/ling-3.0-flash-sante:free",
                 "openrouter/free",
+                "stealth/crouton-alpha",
             ],
             "nvidia_free_models": [
                 # NVIDIA NIM free models (80, credit-based)
@@ -353,8 +354,6 @@ class TokenOptimiserConfig:
                 "01-ai/yi-large",
                 "nv-mistralai/mistral-nemo-12b-instruct",
                 "zyphra/zamba2-7b-instruct",
-                "minimaxai/minimax-m3",
-                "minimaxai/minimax-m3.1-flash",
                 "upstage/solar-mini4",
                 "upstage/solar-pro4",
                 "upstage/solar-pro3",

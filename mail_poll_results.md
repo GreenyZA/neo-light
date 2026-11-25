@@ -4,7 +4,7 @@
 - Unseen: 0
 - New since last poll: 0
 
-## personal-mailbox@example.com
+## personal mailbox
 - Unseen: 8
 - New since last poll: 0
 

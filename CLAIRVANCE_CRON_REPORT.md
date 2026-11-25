@@ -10,7 +10,7 @@
 - New unread items: 0
 - Status: OK
 
-### personal-mailbox@example.com
+### personal mailbox
 - Unseen emails: 13
 - New unread items: 0
 - Status: OK (seeding initialized - first run)

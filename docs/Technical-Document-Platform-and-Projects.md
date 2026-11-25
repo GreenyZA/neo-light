@@ -2,7 +2,7 @@
 
 ## A Technical Overview of the Hermes Agent Environment and the Systems Built On It
 
-**Prepared for:** WarPuppy (WarPuppy / GreenyZA)
+**Prepared for:** WarPuppy
 **Document type:** Technical overview — platform capability and project inventory
 **Status:** Complete
 **Date:** 2026-10-02
